@@ -73,7 +73,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println();
-  Serial.println("Plane Radar");
+  Serial.printf("Plane Radar %s\n", config::kFirmwareVersion);
 
   bootButtonInit();
   displayInit();

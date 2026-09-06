@@ -4,7 +4,11 @@
 
 #include <driver/gpio.h>
 
+#define PLANE_RADAR_VERSION "v2.0.1"
+
 namespace config {
+
+constexpr char kFirmwareVersion[] = PLANE_RADAR_VERSION;
 
 // --- Wi-Fi portal ---
 constexpr char kPortalApName[] = "PlaneRadar-Setup";

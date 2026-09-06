@@ -82,7 +82,21 @@ constexpr char kCustomHead[] =
     ".radar-btn-gps{background-color:#4a5568!important;color:#fff!important;border:none!important;padding:8px 12px!important;border-radius:6px!important;font-size:13px!important;cursor:pointer!important;width:100%!important;margin:4px 0 8px 0!important;display:block!important;}"
     "#map-view{height:250px;width:100%;border-radius:6px;margin:10px 0 6px 0;border:1px solid rgba(128,128,128,0.4);display:none;z-index:10;}"
     "#gps-status{font-size:12px;line-height:1.4;margin-top:6px;min-height:16px;}"
-    "</style>";
+    ".radar-footer{text-align:center;margin:28px auto 14px auto;font-size:12px;color:rgba(128,128,128,0.8);border-top:1px solid rgba(128,128,128,0.25);padding-top:12px;max-width:380px;line-height:1.6;}"
+    ".radar-footer a{color:#0078d4!important;text-decoration:none!important;font-weight:bold!important;}"
+    ".radar-footer a:hover{text-decoration:underline!important;}"
+    "</style>"
+    "<script>"
+    "document.addEventListener('DOMContentLoaded',function(){"
+    "if(document.getElementById('radar-repo-footer'))return;"
+    "var f=document.createElement('div');"
+    "f.id='radar-repo-footer';"
+    "f.className='radar-footer';"
+    "f.innerHTML='<div>Plane Radar <strong>" PLANE_RADAR_VERSION "</strong></div><div style=\"margin-top:4px;\"><a href=\"https://github.com/oldjiberjaber/ESP32-Plane-Radar\" target=\"_blank\" rel=\"noopener\">&#x1F517; GitHub: oldjiberjaber/ESP32-Plane-Radar</a></div>';"
+    "var c=document.querySelector('.container')||document.querySelector('div')||document.body;"
+    "if(c&&c.parentNode&&c!==document.body){c.appendChild(f);}else{document.body.appendChild(f);}"
+    "});"
+    "</script>";
 
 constexpr char kGpsToolsHtml[] =
     "<div class='radar-card'>"
@@ -259,6 +273,13 @@ char s_runways_small_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_rwys_small("show_rwys_s", "Show Small / GA Airfields & Strips", "T", 2,
                                         s_runways_small_attrs, WFM_LABEL_AFTER);
 
+constexpr char kFooterHtml[] =
+    "<div id='radar-repo-footer' class='radar-footer'>"
+    "<div>Plane Radar <strong>" PLANE_RADAR_VERSION "</strong></div>"
+    "<div style='margin-top:4px;'><a href='https://github.com/oldjiberjaber/ESP32-Plane-Radar' target='_blank' rel='noopener'>&#x1F517; GitHub: oldjiberjaber/ESP32-Plane-Radar</a></div>"
+    "</div>";
+WiFiManagerParameter s_param_footer(kFooterHtml);
+
 void refreshPortalParamDefaults() {
   char lat_buf[kCoordParamLen + 1];
   char lon_buf[kCoordParamLen + 1];
@@ -321,6 +342,7 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_rwys_medium);
   wm.addParameter(&s_param_rwys_mil);
   wm.addParameter(&s_param_rwys_small);
+  wm.addParameter(&s_param_footer);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }
 
@@ -447,7 +469,9 @@ void ensureWifiManager() {
   s_wm.setAPStaticIPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
                            IPAddress(255, 255, 255, 0));
   s_wm.setHostname(config::kPortalHostname);
-  s_wm.setTitle("Plane Radar");
+  char title_buf[32];
+  snprintf(title_buf, sizeof(title_buf), "Plane Radar %s", config::kFirmwareVersion);
+  s_wm.setTitle(title_buf);
 
   std::vector<const char*> menu = {"wifi", "param", "info", "update", "exit"};
   s_wm.setMenu(menu);
