@@ -15,8 +15,8 @@ namespace {
 
 constexpr char kApiBase[] = "https://opendata.adsb.fi/api/v3/lat/";
 constexpr float kKmPerNm = 1.852f;
-constexpr int kConnectAttemptMs = 200;
-constexpr unsigned long kRequestTimeoutMs = 10000;
+constexpr int kConnectAttemptMs = 500;
+constexpr unsigned long kRequestTimeoutMs = 3500;
 
 Aircraft s_aircraft[kMaxAircraft];
 size_t s_aircraft_count = 0;
@@ -41,7 +41,8 @@ int performGetWithPoll(HTTPClient& http) {
         code != HTTPC_ERROR_NOT_CONNECTED) {
       return code;
     }
-    delay(5);
+    pollNetwork();
+    yield();
   }
   return HTTPC_ERROR_READ_TIMEOUT;
 }
@@ -57,7 +58,7 @@ bool readResponseBodyWithPoll(HTTPClient& http, String& payload) {
     payload.reserve(static_cast<unsigned>(content_length + 1));
   }
 
-  uint8_t buffer[512];
+  uint8_t buffer[1024];
   const unsigned long deadline = millis() + kRequestTimeoutMs;
   while (millis() < deadline) {
     pollNetwork();
@@ -79,7 +80,8 @@ bool readResponseBodyWithPoll(HTTPClient& http, String& payload) {
     if (!http.connected() && stream->available() <= 0) {
       break;
     }
-    delay(1);
+    pollNetwork();
+    yield();
   }
 
   return payload.length() > 0;

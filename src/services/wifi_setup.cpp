@@ -675,7 +675,10 @@ void wifiLoop() {
     }
     if (s_wm.getWebPortalActive() || s_wm.getConfigPortalActive()) {
       bootButtonPollLongPress();
-      s_wm.process();
+      // Process pending web server / DNS requests thoroughly
+      for (int i = 0; i < 4; ++i) {
+        s_wm.process();
+      }
     }
   } else {
     stopLanWebPortal();

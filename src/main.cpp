@@ -52,13 +52,16 @@ void handleBootButton() {
 
 void fetchAndDrawAircraft() {
   const float fetch_km = ui::radar::fetchRadiusKm();
+  wifiLoop();
   if (!services::adsb::fetchUpdate(services::location::lat(),
                                    services::location::lon(), fetch_km)) {
     handleBootButton();
+    wifiLoop();
     return;
   }
   ui::radarDisplayRefreshAircraft();
   handleBootButton();
+  wifiLoop();
 }
 
 }  // namespace
@@ -132,5 +135,5 @@ void loop() {
     }
   }
 
-  delay(10);
+  yield();
 }
