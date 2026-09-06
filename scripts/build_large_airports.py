@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build runway dataset from OurAirports (large_airport only)."""
+"""Build runway dataset from OurAirports (Large, Medium, Military, Small)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,13 @@ RUNWAYS_URL = (
     "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/"
     "runways.csv"
 )
+
+MIL_KEYWORDS = [
+    "RAF ", "AFB", "AIR BASE", "NAVAL AIR", "NAS ", "ARMY AIR", "MCAS",
+    "AIR FORCE BASE", "MILITARY", "BASE AERIENNE", "FLIEGERHORST",
+    "LUFTWAFFEN", "AERODROME MILITAIRE", "AB ", "A.B.", "KASARNE", "AERODROMO MILITAR"
+]
+
 
 def fetch_csv(url: str) -> list[dict[str, str]]:
     with urllib.request.urlopen(url, timeout=60) as resp:
@@ -59,36 +66,53 @@ def is_helipad(row: dict[str, str]) -> bool:
 
 
 def build_dataset() -> tuple[
-    list[tuple[str, int, int]],
+    list[tuple[str, int, int, int]],
     list[tuple[int, int, int, int, int, int]],
 ]:
+    print("Fetching OurAirports airports & runways...")
     airports = fetch_csv(AIRPORTS_URL)
     runways = fetch_csv(RUNWAYS_URL)
 
-    large_idents: dict[str, tuple[int, int]] = {}
+    ap_candidates: dict[str, tuple[int, int, int]] = {}
     for a in airports:
-        if a.get("type") != "large_airport":
-            continue
         ident = (a.get("ident") or "").strip()
-        if len(ident) != 4:
+        if len(ident) not in (3, 4):
+            continue
+        t = a.get("type", "")
+        if t not in ("large_airport", "medium_airport", "small_airport"):
             continue
         lat = coord_e7(a.get("latitude_deg"))
         lon = coord_e7(a.get("longitude_deg"))
         if lat is None or lon is None:
             continue
-        large_idents[ident] = (lat, lon)
+
+        name = (a.get("name") or "").upper()
+        is_mil = any(k in name for k in MIL_KEYWORDS)
+        if is_mil:
+            cat = 2  # Military
+        elif t == "large_airport":
+            cat = 0  # Large
+        elif t == "medium_airport":
+            cat = 1  # Medium
+        elif t == "small_airport":
+            cat = 3  # Small
+        else:
+            continue
+        ap_candidates[ident] = (lat, lon, cat)
 
     airport_rows = sorted(
-        (ident, lat, lon) for ident, (lat, lon) in large_idents.items()
+        (ident, lat, lon, cat)
+        for ident, (lat, lon, cat) in ap_candidates.items()
     )
-    airport_index = {ident: idx for idx, (ident, _, _) in enumerate(airport_rows)}
+    temp_idx = {ident: idx for idx, (ident, _, _, _) in enumerate(airport_rows)}
 
+    used_airports = set()
     segments: list[tuple[int, int, int, int, int, int]] = []
     for r in runways:
         if r.get("closed") == "1":
             continue
-        airport = (r.get("airport_ident") or "").strip()
-        if airport not in airport_index:
+        ident = (r.get("airport_ident") or "").strip()
+        if ident not in temp_idx:
             continue
         if is_helipad(r):
             continue
@@ -107,7 +131,29 @@ def build_dataset() -> tuple[
         length_m = int(round(length_ft * 0.3048))
         segments.append(
             (
-                airport_index[airport],
+                temp_idx[ident],
+                le_lat,
+                le_lon,
+                he_lat,
+                he_lon,
+                length_m,
+            )
+        )
+        used_airports.add(ident)
+
+    final_airports = sorted(
+        (ident, lat, lon, cat)
+        for ident, lat, lon, cat in airport_rows
+        if ident in used_airports
+    )
+    final_idx = {ident: idx for idx, (ident, _, _, _) in enumerate(final_airports)}
+
+    final_segments: list[tuple[int, int, int, int, int, int]] = []
+    for old_idx, le_lat, le_lon, he_lat, he_lon, length_m in segments:
+        ident = airport_rows[old_idx][0]
+        final_segments.append(
+            (
+                final_idx[ident],
                 le_lat,
                 le_lon,
                 he_lat,
@@ -116,8 +162,8 @@ def build_dataset() -> tuple[
             )
         )
 
-    segments.sort(key=lambda row: (row[0], -row[5]))
-    return airport_rows, segments
+    final_segments.sort(key=lambda row: (row[0], -row[5]))
+    return final_airports, final_segments
 
 
 def render_header(airport_count: int, segment_count: int) -> str:
@@ -131,10 +177,18 @@ def render_header(airport_count: int, segment_count: int) -> str:
             "",
             "namespace data::large_airports {",
             "",
+            "enum AirportCategory : uint8_t {",
+            "  kCatLarge = 0,",
+            "  kCatMedium = 1,",
+            "  kCatMilitary = 2,",
+            "  kCatSmall = 3,",
+            "};",
+            "",
             "struct Airport {",
             "  char ident[5];",
             "  int32_t lat_e7;",
             "  int32_t lon_e7;",
+            "  uint8_t category;",
             "};",
             "",
             "struct Runway {",
@@ -159,7 +213,7 @@ def render_header(airport_count: int, segment_count: int) -> str:
 
 
 def render_cpp(
-    airport_rows: list[tuple[str, int, int]],
+    airport_rows: list[tuple[str, int, int, int]],
     segments: list[tuple[int, int, int, int, int, int]],
 ) -> str:
     lines = [
@@ -170,8 +224,8 @@ def render_cpp(
         "",
         "const Airport kAirports[] = {",
     ]
-    for ident, lat, lon in airport_rows:
-        lines.append(f'  {{"{ident}", {lat}, {lon}}},')
+    for ident, lat, lon, cat in airport_rows:
+        lines.append(f'  {{"{ident}", {lat}, {lon}, {cat}}},')
     lines += [
         "};",
         "",

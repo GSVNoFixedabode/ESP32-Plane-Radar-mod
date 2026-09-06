@@ -45,9 +45,17 @@ float fetchRadiusKm();
 
 bool useMiles();
 bool showRunways();
-/** WiFi portal checkbox: "T" = miles, otherwise km. */
+bool showRunwaysLarge();
+bool showRunwaysMedium();
+bool showRunwaysMilitary();
+bool showRunwaysSmall();
+/** WiFi portal checkboxes: "T" = checked, otherwise unchecked. */
 void saveMilesFromPortal(const char* checkbox_value);
 void saveRunwaysFromPortal(const char* checkbox_value);
+void saveRunwaysLargeFromPortal(const char* checkbox_value);
+void saveRunwaysMediumFromPortal(const char* checkbox_value);
+void saveRunwaysMilitaryFromPortal(const char* checkbox_value);
+void saveRunwaysSmallFromPortal(const char* checkbox_value);
 void formatRing3Label(char* buf, size_t len, float ring3_km, bool use_miles);
 void formatCurrentRing3Label(char* buf, size_t len);
 /** Reset distance units to km (e.g. with WiFi credential wipe). */

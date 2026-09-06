@@ -9,6 +9,8 @@
 > - 🗺️ **Interactive OpenStreetMap Picker** & phone GPS / IP geolocation in the setup portal.
 > - 🎨 **Aircraft Category Color Coding** (🔴 Military = Red, 🔵 Commercial = Cyan, 🟢 GA = Green, 🟡 Heli = Gold).
 > - 🚨 **Flashing Emergency Aircraft** (real-time 400ms blink for squawk `7700`/`7600`/`7500` & active emergencies).
+> - 🛫 **Multi-Category Airfield Overlays** (10,500+ global airfields with independent toggles for Major, Regional, Military, and GA).
+> - ⚡ **High-Responsiveness Web Portal** (non-blocking request streaming with zero web interface lag).
 > - 📡 **Wireless OTA Updates** via PlatformIO (`supermini_ota`) and web browser (`/update`).
 > - 🖥️ **Boot Status Display** (5-second screen showing IP and `plane-radar.local`).
 >
@@ -43,7 +45,7 @@ During setup you can also hold BOOT at power-on to force a credential reset (sam
 **Reconfigure anytime** (after the device is on your network):
 
 1. Open **`http://plane-radar.local`** or **`http://<device-ip>`** (e.g. from your router or serial log at boot)
-2. Change Wi‑Fi, location, units, or runway overlay; save
+2. Change Wi‑Fi, location, units, or runway overlays; save
 
 The same portal runs on the setup AP and on the device’s LAN IP while connected to Wi‑Fi. mDNS hostname is `plane-radar` → **plane-radar.local** (`kPortalHostname` in `config.h`). Some clients resolve `.local` slowly; use the IP if needed.
 
@@ -55,7 +57,10 @@ The same portal runs on the setup AP and on the device’s LAN IP while connecte
 | **📍 Auto Locate** | One-tap phone GPS / IP geolocation fallback (`/api/geolocate`) |
 | **Latitude / Longitude** | Radar center and ADS-B query position (defaults in `config.h` until set) |
 | **Display distances in miles** | Ring scale label in **mi** instead of **km** (e.g. `6mi` vs `10km`) |
-| **Show airport runways** | Major-airport runway overlay on the radar (off to hide) |
+| **Major / International Airports** | Primary international hub runways (e.g. Heathrow `EGLL`, JFK `KJFK`, Schiphol `EHAM`) |
+| **Regional / Medium Airports** | Regional & domestic airfields (e.g. Cambridge `EGSC`, Norwich `EGSH`, Biggin Hill `EGKB`) |
+| **Military Airbases & Stations** | Military airbases, RAF & Air Force stations (e.g. RAF Coningsby `EGXC`, Lakenheath `EGUL`) |
+| **Small / GA Airfields & Strips** | General aviation airfields, flying clubs, and light strips |
 
 After boot and Wi‑Fi connection, the device displays a **5-second status screen** showing its IP address and mDNS address (`http://plane-radar.local`). After a reset, the device reboots and shows the setup screen immediately.
 
@@ -80,11 +85,19 @@ Layout and colors: `include/ui/radar_theme.h`.
 
 Preset and miles/km choice persist across reboot (`planeradar` NVS namespace).
 
-### Runways
+### Runways & Airfields
 
-- Major airports from OurAirports (`large_airport`); all open runway strips in range (helipads excluded)
-- Teal runway lines with one ICAO label per airport (e.g. `KJFK`); toggle in the Wi‑Fi setup portal
-- Update the embedded list: `python3 scripts/build_large_airports.py`
+The radar includes a global database of **10,525 airports and 13,942 runways** categorized into 4 tiers:
+- **Major / International Hubs** (1,094 airports): Heathrow, JFK, Schiphol, LAX, CDG, etc.
+- **Regional / Medium Airports** (2,940 airports): Regional passenger, cargo & business airports.
+- **Military Airbases & Stations** (521 bases): RAF stations, Air Force & Naval bases (e.g. RAF Coningsby `EGXC`, Lakenheath `EGUL`, Edwards AFB `KEDW`).
+- **Small / GA Airfields** (5,970 airfields): General aviation flying clubs, paved & grass strips.
+
+Features:
+- Individual category switches in the Wi‑Fi setup portal (`/param` or `/wifi`).
+- Teal runway geometry lines with 4-letter ICAO labels (e.g. `KJFK`).
+- Filtered in $O(1)$ with a compact 1.3 KB bitset index in RAM.
+- Re-generate or customize the dataset anytime: `python3 scripts/build_large_airports.py`.
 
 ### Aircraft & Color Coding
 

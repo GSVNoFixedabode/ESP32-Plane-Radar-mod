@@ -235,9 +235,21 @@ char s_miles_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_miles("use_miles", "Display distances in miles", "T", 2,
                                    s_miles_checkbox_attrs, WFM_LABEL_AFTER);
 
-char s_runways_checkbox_attrs[32] = "type=\"checkbox\"";
-WiFiManagerParameter s_param_runways("show_runways", "Show airport runways", "T", 2,
-                                     s_runways_checkbox_attrs, WFM_LABEL_AFTER);
+char s_runways_large_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_rwys_large("show_rwys_l", "Show Major / International Airports", "T", 2,
+                                        s_runways_large_attrs, WFM_LABEL_AFTER);
+
+char s_runways_medium_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_rwys_medium("show_rwys_m", "Show Regional / Medium Airports", "T", 2,
+                                         s_runways_medium_attrs, WFM_LABEL_AFTER);
+
+char s_runways_mil_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_rwys_mil("show_rwys_mil", "Show Military Airbases & Stations", "T", 2,
+                                      s_runways_mil_attrs, WFM_LABEL_AFTER);
+
+char s_runways_small_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_rwys_small("show_rwys_s", "Show Small / GA Airfields & Strips", "T", 2,
+                                        s_runways_small_attrs, WFM_LABEL_AFTER);
 
 void refreshPortalParamDefaults() {
   char lat_buf[kCoordParamLen + 1];
@@ -249,9 +261,22 @@ void refreshPortalParamDefaults() {
   snprintf(s_miles_checkbox_attrs, sizeof(s_miles_checkbox_attrs), "type=\"checkbox\"%s",
            ui::radar::useMiles() ? " checked" : "");
   s_param_miles.setValue("T", 2);
-  snprintf(s_runways_checkbox_attrs, sizeof(s_runways_checkbox_attrs),
-           "type=\"checkbox\"%s", ui::radar::showRunways() ? " checked" : "");
-  s_param_runways.setValue("T", 2);
+
+  snprintf(s_runways_large_attrs, sizeof(s_runways_large_attrs),
+           "type=\"checkbox\"%s", ui::radar::showRunwaysLarge() ? " checked" : "");
+  s_param_rwys_large.setValue("T", 2);
+
+  snprintf(s_runways_medium_attrs, sizeof(s_runways_medium_attrs),
+           "type=\"checkbox\"%s", ui::radar::showRunwaysMedium() ? " checked" : "");
+  s_param_rwys_medium.setValue("T", 2);
+
+  snprintf(s_runways_mil_attrs, sizeof(s_runways_mil_attrs),
+           "type=\"checkbox\"%s", ui::radar::showRunwaysMilitary() ? " checked" : "");
+  s_param_rwys_mil.setValue("T", 2);
+
+  snprintf(s_runways_small_attrs, sizeof(s_runways_small_attrs),
+           "type=\"checkbox\"%s", ui::radar::showRunwaysSmall() ? " checked" : "");
+  s_param_rwys_small.setValue("T", 2);
 }
 
 void onPortalParamsSaved() {
@@ -260,7 +285,10 @@ void onPortalParamsSaved() {
     Serial.println("Invalid lat/lon in portal — keeping previous location");
   }
   ui::radar::saveMilesFromPortal(s_param_miles.getValue());
-  ui::radar::saveRunwaysFromPortal(s_param_runways.getValue());
+  ui::radar::saveRunwaysLargeFromPortal(s_param_rwys_large.getValue());
+  ui::radar::saveRunwaysMediumFromPortal(s_param_rwys_medium.getValue());
+  ui::radar::saveRunwaysMilitaryFromPortal(s_param_rwys_mil.getValue());
+  ui::radar::saveRunwaysSmallFromPortal(s_param_rwys_small.getValue());
 }
 
 void attachPortalParams(WiFiManager& wm) {
@@ -269,7 +297,10 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_lat);
   wm.addParameter(&s_param_lon);
   wm.addParameter(&s_param_miles);
-  wm.addParameter(&s_param_runways);
+  wm.addParameter(&s_param_rwys_large);
+  wm.addParameter(&s_param_rwys_medium);
+  wm.addParameter(&s_param_rwys_mil);
+  wm.addParameter(&s_param_rwys_small);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }
 
