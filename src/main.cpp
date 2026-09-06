@@ -9,6 +9,7 @@
 #include "hardware/display.h"
 #include "services/adsb_client.h"
 #include "services/radar_location.h"
+#include "services/time_service.h"
 #include "services/wifi_setup.h"
 #include "ui/radar_display.h"
 #include "ui/radar_range.h"
@@ -17,6 +18,7 @@
 namespace {
 
 bool g_radar_visible = false;
+bool g_last_night_state = false;
 unsigned long g_wifi_down_since = 0;
 unsigned long g_last_reconnect_ms = 0;
 unsigned long g_last_adsb_fetch_ms = 0;
@@ -27,6 +29,7 @@ void showRadarIfConnected() {
     g_radar_visible = false;
     return;
   }
+  g_last_night_state = ui::radar::effectiveNightMode();
   ui::radarDisplayDraw();
   g_radar_visible = true;
 }
@@ -82,6 +85,7 @@ void setup() {
   services::adsb::setPollFn(wifiLoop);
 
   if (wifiSetupConnect()) {
+    services::time::init();
     statusScreenConnected(WiFi.localIP().toString().c_str(), config::kPortalHostUrl);
     const unsigned long until = millis() + config::kConnectedStatusDurationMs;
     while (millis() < until) {
@@ -112,6 +116,7 @@ void loop() {
         millis() - g_last_reconnect_ms >= config::kWifiReconnectIntervalMs) {
       g_last_reconnect_ms = millis();
       if (wifiReconnect()) {
+        services::time::init();
         g_wifi_down_since = 0;
         showRadarIfConnected();
       }
@@ -122,6 +127,14 @@ void loop() {
     if (!g_radar_visible) {
       showRadarIfConnected();
     } else {
+      const bool cur_night = ui::radar::effectiveNightMode();
+      if (cur_night != g_last_night_state) {
+        g_last_night_state = cur_night;
+        Serial.printf("Day/Night transition -> %s mode\n",
+                      cur_night ? "Night" : "Day");
+        ui::radarDisplayDraw();
+      }
+
       if (services::adsb::hasEmergencyAircraft() &&
           now - g_last_blink_ms >= 400) {
         g_last_blink_ms = now;

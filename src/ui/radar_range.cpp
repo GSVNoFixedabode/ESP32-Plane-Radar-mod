@@ -1,5 +1,7 @@
 #include "ui/radar_range.h"
 
+#include "services/radar_location.h"
+#include "services/time_service.h"
 #include "ui/radar_theme.h"
 
 #include <Preferences.h>
@@ -14,6 +16,8 @@ namespace {
 constexpr char kPrefsNamespace[] = "planeradar";
 constexpr char kPrefsRangeKey[] = "rangeIdx";
 constexpr char kPrefsMilesKey[] = "useMiles";
+constexpr char kPrefsNightModeKey[] = "nightMode";
+constexpr char kPrefsAutoNightKey[] = "autoNight";
 constexpr char kPrefsRunwaysKey[] = "showRwys";
 constexpr char kPrefsRunwaysLargeKey[] = "showRwysL";
 constexpr char kPrefsRunwaysMediumKey[] = "showRwysM";
@@ -25,6 +29,8 @@ constexpr float kKmPerMile = 1.609344f;
 Preferences s_prefs;
 uint8_t s_range_index = kDefaultRangeIndex;
 bool s_use_miles = false;
+bool s_night_mode = false;
+bool s_auto_night_mode = false;
 bool s_show_runways = true;
 bool s_show_runways_large = true;
 bool s_show_runways_medium = true;
@@ -44,6 +50,22 @@ void saveUseMiles() {
     return;
   }
   s_prefs.putBool(kPrefsMilesKey, s_use_miles);
+  s_prefs.end();
+}
+
+void saveNightMode() {
+  if (!s_prefs.begin(kPrefsNamespace, false)) {
+    return;
+  }
+  s_prefs.putBool(kPrefsNightModeKey, s_night_mode);
+  s_prefs.end();
+}
+
+void saveAutoNightMode() {
+  if (!s_prefs.begin(kPrefsNamespace, false)) {
+    return;
+  }
+  s_prefs.putBool(kPrefsAutoNightKey, s_auto_night_mode);
   s_prefs.end();
 }
 
@@ -81,6 +103,8 @@ void rangeInit() {
   s_range_index =
       (saved < kRangePresetCount) ? saved : kDefaultRangeIndex;
   s_use_miles = s_prefs.getBool(kPrefsMilesKey, false);
+  s_night_mode = s_prefs.getBool(kPrefsNightModeKey, false);
+  s_auto_night_mode = s_prefs.getBool(kPrefsAutoNightKey, false);
   s_show_runways = s_prefs.getBool(kPrefsRunwaysKey, true);
   s_show_runways_large = s_prefs.getBool(kPrefsRunwaysLargeKey, true);
   s_show_runways_medium = s_prefs.getBool(kPrefsRunwaysMediumKey, true);
@@ -107,6 +131,18 @@ float fetchRadiusKm() {
 
 bool useMiles() { return s_use_miles; }
 
+bool nightMode() { return s_night_mode; }
+
+bool autoNightMode() { return s_auto_night_mode; }
+
+bool effectiveNightMode() {
+  if (s_auto_night_mode && services::time::isTimeSynced()) {
+    return services::time::isSunBelowHorizon(services::location::lat(),
+                                             services::location::lon());
+  }
+  return s_night_mode;
+}
+
 bool showRunways() {
   return s_show_runways && (s_show_runways_large || s_show_runways_medium ||
                             s_show_runways_mil || s_show_runways_small);
@@ -124,6 +160,18 @@ void saveMilesFromPortal(const char* checkbox_value) {
   s_use_miles = portalCheckboxChecked(checkbox_value);
   saveUseMiles();
   Serial.printf("Distance units: %s\n", s_use_miles ? "miles" : "km");
+}
+
+void saveNightModeFromPortal(const char* checkbox_value) {
+  s_night_mode = portalCheckboxChecked(checkbox_value);
+  saveNightMode();
+  Serial.printf("Night mode: %s\n", s_night_mode ? "on" : "off");
+}
+
+void saveAutoNightModeFromPortal(const char* checkbox_value) {
+  s_auto_night_mode = portalCheckboxChecked(checkbox_value);
+  saveAutoNightMode();
+  Serial.printf("Auto night mode: %s\n", s_auto_night_mode ? "on" : "off");
 }
 
 void saveRunwaysFromPortal(const char* checkbox_value) {
@@ -168,6 +216,8 @@ void formatCurrentRing3Label(char* buf, size_t len) {
 
 void unitsReset() {
   s_use_miles = false;
+  s_night_mode = false;
+  s_auto_night_mode = false;
   s_show_runways = true;
   s_show_runways_large = true;
   s_show_runways_medium = true;
@@ -175,6 +225,8 @@ void unitsReset() {
   s_show_runways_small = false;
   if (s_prefs.begin(kPrefsNamespace, false)) {
     s_prefs.remove(kPrefsMilesKey);
+    s_prefs.remove(kPrefsNightModeKey);
+    s_prefs.remove(kPrefsAutoNightKey);
     s_prefs.remove(kPrefsRunwaysKey);
     s_prefs.remove(kPrefsRunwaysLargeKey);
     s_prefs.remove(kPrefsRunwaysMediumKey);

@@ -235,6 +235,14 @@ char s_miles_checkbox_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_miles("use_miles", "Display distances in miles", "T", 2,
                                    s_miles_checkbox_attrs, WFM_LABEL_AFTER);
 
+char s_auto_night_mode_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_auto_night_mode("auto_night_mode", "Auto Day/Night (Sunset to Sunrise)", "T", 2,
+                                             s_auto_night_mode_attrs, WFM_LABEL_AFTER);
+
+char s_night_mode_attrs[32] = "type=\"checkbox\"";
+WiFiManagerParameter s_param_night_mode("night_mode", "Manual Night Mode (Dim palette)", "T", 2,
+                                        s_night_mode_attrs, WFM_LABEL_AFTER);
+
 char s_runways_large_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_rwys_large("show_rwys_l", "Show Major / International Airports", "T", 2,
                                         s_runways_large_attrs, WFM_LABEL_AFTER);
@@ -262,6 +270,14 @@ void refreshPortalParamDefaults() {
            ui::radar::useMiles() ? " checked" : "");
   s_param_miles.setValue("T", 2);
 
+  snprintf(s_auto_night_mode_attrs, sizeof(s_auto_night_mode_attrs), "type=\"checkbox\"%s",
+           ui::radar::autoNightMode() ? " checked" : "");
+  s_param_auto_night_mode.setValue("T", 2);
+
+  snprintf(s_night_mode_attrs, sizeof(s_night_mode_attrs), "type=\"checkbox\"%s",
+           ui::radar::nightMode() ? " checked" : "");
+  s_param_night_mode.setValue("T", 2);
+
   snprintf(s_runways_large_attrs, sizeof(s_runways_large_attrs),
            "type=\"checkbox\"%s", ui::radar::showRunwaysLarge() ? " checked" : "");
   s_param_rwys_large.setValue("T", 2);
@@ -285,6 +301,8 @@ void onPortalParamsSaved() {
     Serial.println("Invalid lat/lon in portal — keeping previous location");
   }
   ui::radar::saveMilesFromPortal(s_param_miles.getValue());
+  ui::radar::saveAutoNightModeFromPortal(s_param_auto_night_mode.getValue());
+  ui::radar::saveNightModeFromPortal(s_param_night_mode.getValue());
   ui::radar::saveRunwaysLargeFromPortal(s_param_rwys_large.getValue());
   ui::radar::saveRunwaysMediumFromPortal(s_param_rwys_medium.getValue());
   ui::radar::saveRunwaysMilitaryFromPortal(s_param_rwys_mil.getValue());
@@ -297,6 +315,8 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_lat);
   wm.addParameter(&s_param_lon);
   wm.addParameter(&s_param_miles);
+  wm.addParameter(&s_param_auto_night_mode);
+  wm.addParameter(&s_param_night_mode);
   wm.addParameter(&s_param_rwys_large);
   wm.addParameter(&s_param_rwys_medium);
   wm.addParameter(&s_param_rwys_mil);

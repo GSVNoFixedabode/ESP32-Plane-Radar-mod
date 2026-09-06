@@ -26,6 +26,7 @@ uint16_t kColorMilitary = 0xF800;
 uint16_t kColorCommercial = 0x07FF;
 uint16_t kColorGA = 0x07E0;
 uint16_t kColorHeli = 0xFFE0;
+uint16_t kColorEmergency = 0xF800;
 uint16_t kColorTrackVector = 0xFFFF;
 uint16_t kColorTagType = 0x5DFF;
 uint16_t kColorTagAltitude = 0xFFE0;
@@ -38,7 +39,7 @@ namespace {
 
 uint16_t getAircraftColor(const services::adsb::Aircraft& plane) {
   if (plane.is_emergency) {
-    return tft.color565(255, 30, 30);
+    return radar::kColorEmergency;
   }
   if (plane.is_military ||
       plane.category == services::adsb::AircraftCategory::Military) {
@@ -195,40 +196,60 @@ void initTagLabelMetrics() {
 }
 
 void initPalette() {
-  radar::kColorBackground = tft.color565(radar::kBgR, radar::kBgG, radar::kBgB);
-  radar::kColorGrid = tft.color565(radar::kGridR, radar::kGridG, radar::kGridB);
-  radar::kColorLabel = tft.color565(255, 255, 255);
-  radar::kColorCenter = tft.color565(255, 255, 255);
-  // GC9A01 BGR panel: swap R/B in color565 so logical red renders red on screen.
-  if (config::kDisplayRgbOrder) {
-    radar::kColorMilitary =
-        tft.color565(radar::kMilitaryB, radar::kMilitaryG, radar::kMilitaryR);
-    radar::kColorCommercial =
-        tft.color565(radar::kCommercialB, radar::kCommercialG, radar::kCommercialR);
-    radar::kColorGA =
-        tft.color565(radar::kGaB, radar::kGaG, radar::kGaR);
-    radar::kColorHeli =
-        tft.color565(radar::kHeliB, radar::kHeliG, radar::kHeliR);
-  } else {
-    radar::kColorMilitary =
-        tft.color565(radar::kMilitaryR, radar::kMilitaryG, radar::kMilitaryB);
-    radar::kColorCommercial =
-        tft.color565(radar::kCommercialR, radar::kCommercialG, radar::kCommercialB);
-    radar::kColorGA =
-        tft.color565(radar::kGaR, radar::kGaG, radar::kGaB);
-    radar::kColorHeli =
-        tft.color565(radar::kHeliR, radar::kHeliG, radar::kHeliB);
-  }
+  const bool night = radar::effectiveNightMode();
+
+  auto scaleChan = [night](uint8_t val) -> uint8_t {
+    if (!night) {
+      return val;
+    }
+    return static_cast<uint8_t>((static_cast<uint32_t>(val) * 45 + 50) / 100);
+  };
+
+  auto makeColor = [&](uint8_t r, uint8_t g, uint8_t b) -> uint16_t {
+    const uint8_t sr = scaleChan(r);
+    const uint8_t sg = scaleChan(g);
+    const uint8_t sb = scaleChan(b);
+    if (config::kDisplayRgbOrder) {
+      return tft.color565(sb, sg, sr);
+    }
+    return tft.color565(sr, sg, sb);
+  };
+
+  auto makeColorDirect = [&](uint8_t r, uint8_t g, uint8_t b) -> uint16_t {
+    const uint8_t sr = scaleChan(r);
+    const uint8_t sg = scaleChan(g);
+    const uint8_t sb = scaleChan(b);
+    return tft.color565(sr, sg, sb);
+  };
+
+  radar::kColorBackground =
+      makeColorDirect(radar::kBgR, radar::kBgG, radar::kBgB);
+  radar::kColorGrid =
+      makeColorDirect(radar::kGridR, radar::kGridG, radar::kGridB);
+  radar::kColorLabel = makeColorDirect(255, 255, 255);
+  radar::kColorCenter = makeColorDirect(255, 255, 255);
+
+  radar::kColorMilitary =
+      makeColor(radar::kMilitaryR, radar::kMilitaryG, radar::kMilitaryB);
+  radar::kColorCommercial =
+      makeColor(radar::kCommercialR, radar::kCommercialG, radar::kCommercialB);
+  radar::kColorGA =
+      makeColor(radar::kGaR, radar::kGaG, radar::kGaB);
+  radar::kColorHeli =
+      makeColor(radar::kHeliR, radar::kHeliG, radar::kHeliB);
+  radar::kColorEmergency =
+      makeColor(255, 30, 30);
+
   radar::kColorTrackVector =
-      tft.color565(radar::kTrackR, radar::kTrackG, radar::kTrackB);
+      makeColorDirect(radar::kTrackR, radar::kTrackG, radar::kTrackB);
   radar::kColorTagType =
-      tft.color565(radar::kTagTypeR, radar::kTagTypeG, radar::kTagTypeB);
+      makeColorDirect(radar::kTagTypeR, radar::kTagTypeG, radar::kTagTypeB);
   radar::kColorTagAltitude =
-      tft.color565(radar::kTagAltR, radar::kTagAltG, radar::kTagAltB);
+      makeColorDirect(radar::kTagAltR, radar::kTagAltG, radar::kTagAltB);
   radar::kColorRunway =
-      tft.color565(radar::kRunwayR, radar::kRunwayG, radar::kRunwayB);
-  radar::kColorRunwayLabel = tft.color565(radar::kRunwayLabelR, radar::kRunwayLabelG,
-                                          radar::kRunwayLabelB);
+      makeColorDirect(radar::kRunwayR, radar::kRunwayG, radar::kRunwayB);
+  radar::kColorRunwayLabel =
+      makeColorDirect(radar::kRunwayLabelR, radar::kRunwayLabelG, radar::kRunwayLabelB);
 }
 
 constexpr float kKmPerDeg = 111.0f;
@@ -579,7 +600,7 @@ void drawAircraft() {
     }
     uint16_t dot_color = radar::kColorCommercial;
     if (dots[d].is_emergency) {
-      dot_color = tft.color565(255, 30, 30);
+      dot_color = radar::kColorEmergency;
     } else if (dots[d].is_military ||
                dots[d].category == services::adsb::AircraftCategory::Military) {
       dot_color = radar::kColorMilitary;
@@ -707,6 +728,7 @@ void drawScaleLabel(int cx, int cy, int outer_radius) {
 
 template <typename Gfx>
 void drawStaticGrid(Gfx& gfx) {
+  initPalette();
   initLabelMetrics();
   const DrawScope scope(gfx);
   displayFontEnsureLoaded(gfx);
@@ -717,7 +739,6 @@ void drawStaticGrid(Gfx& gfx) {
   gfx.fillScreen(radar::kColorBackground);
   drawRings(cx, cy, grid_r);
   drawCrosshairs(cx, cy, grid_r, radar::kColorGrid);
-  initPalette();
   runway::drawLargeAirportRunways(gfx);
   drawCenterDot(cx, cy);
   drawCardinalLabels();

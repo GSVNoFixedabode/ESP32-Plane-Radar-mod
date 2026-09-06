@@ -10,6 +10,7 @@
 > - 🎨 **Aircraft Category Color Coding** (🔴 Military = Red, 🔵 Commercial = Cyan, 🟢 GA = Green, 🟡 Heli = Gold).
 > - 🚨 **Flashing Emergency Aircraft** (real-time 400ms blink for squawk `7700`/`7600`/`7500` & active emergencies).
 > - 🛫 **Multi-Category Airfield Overlays** (10,500+ global airfields with independent toggles for Major, Regional, Military, and GA).
+> - 🌙 **Automatic & Manual Day / Night Mode** (automatic sunset-to-sunrise astronomical solar calculation via NTP + GPS coordinates, or manual dimmed ~45% brightness palette).
 > - ⚡ **High-Responsiveness Web Portal** (non-blocking request streaming with zero web interface lag).
 > - 📡 **Wireless OTA Updates** via PlatformIO (`supermini_ota`) and web browser (`/update`).
 > - 🖥️ **Boot Status Display** (5-second screen showing IP and `plane-radar.local`).
@@ -57,6 +58,8 @@ The same portal runs on the setup AP and on the device’s LAN IP while connecte
 | **📍 Auto Locate** | One-tap phone GPS / IP geolocation fallback (`/api/geolocate`) |
 | **Latitude / Longitude** | Radar center and ADS-B query position (defaults in `config.h` until set) |
 | **Display distances in miles** | Ring scale label in **mi** instead of **km** (e.g. `6mi` vs `10km`) |
+| **Auto Day/Night (Sunset to Sunrise)** | Automatically transitions between Day and Night palettes using astronomical solar calculations from GPS location and NTP time (no timezone configuration needed) |
+| **Manual Night Mode (Dim palette)** | Software dimming mode (~45% brightness palette) override for comfortable nighttime viewing |
 | **Major / International Airports** | Primary international hub runways (e.g. Heathrow `EGLL`, JFK `KJFK`, Schiphol `EHAM`) |
 | **Regional / Medium Airports** | Regional & domestic airfields (e.g. Cambridge `EGSC`, Norwich `EGSH`, Biggin Hill `EGKB`) |
 | **Military Airbases & Stations** | Military airbases, RAF & Air Force stations (e.g. RAF Coningsby `EGXC`, Lakenheath `EGUL`) |
@@ -71,6 +74,10 @@ After boot and Wi‑Fi connection, the device displays a **5-second status scree
 - Dark blue background, subdued green rings and crosshairs
 - White **N / S / E / W** at the bezel; range label on the **east** spoke (ring 3 = ¾ of outer radius)
 - White center dot
+- **Automatic & Manual Day / Night Modes**: 
+  - **Auto Day/Night**: Uses NOAA astronomical solar position calculation based on your device's exact GPS latitude & longitude and NTP UTC time. Automatically transitions to dimmed Night Mode when the sun dips below the horizon at dusk, and transitions back to Day Mode at dawn.
+  - **Manual Night Mode**: Software dimming mode (~45% luminance across background, rings, aircraft, text, and runways) for bedside or dark-room viewing without requiring a physical backlight (`BL`) pin.
+  - **Smooth Real-Time Transitions**: Mode switches occur dynamically in the background without needing a reboot or interrupting aircraft tracking.
 
 Layout and colors: `include/ui/radar_theme.h`.
 

@@ -44,6 +44,9 @@ uint8_t rangeIndex();
 float fetchRadiusKm();
 
 bool useMiles();
+bool nightMode();
+bool autoNightMode();
+bool effectiveNightMode();
 bool showRunways();
 bool showRunwaysLarge();
 bool showRunwaysMedium();
@@ -51,6 +54,8 @@ bool showRunwaysMilitary();
 bool showRunwaysSmall();
 /** WiFi portal checkboxes: "T" = checked, otherwise unchecked. */
 void saveMilesFromPortal(const char* checkbox_value);
+void saveNightModeFromPortal(const char* checkbox_value);
+void saveAutoNightModeFromPortal(const char* checkbox_value);
 void saveRunwaysFromPortal(const char* checkbox_value);
 void saveRunwaysLargeFromPortal(const char* checkbox_value);
 void saveRunwaysMediumFromPortal(const char* checkbox_value);

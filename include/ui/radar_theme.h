@@ -115,6 +115,7 @@ extern uint16_t kColorMilitary;
 extern uint16_t kColorCommercial;
 extern uint16_t kColorGA;
 extern uint16_t kColorHeli;
+extern uint16_t kColorEmergency;
 extern uint16_t kColorTrackVector;
 extern uint16_t kColorTagType;
 extern uint16_t kColorTagAltitude;
