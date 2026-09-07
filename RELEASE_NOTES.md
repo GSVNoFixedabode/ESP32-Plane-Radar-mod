@@ -13,7 +13,8 @@
     - **Physical PWM on GPIO 5**: Smooth hardware backlight dimming via LEDC PWM on the 2.1" display.
     - **Software Color Palette Scaling**: Dynamic RGB luminance scaling across the entire UI for 1.28" display modules with hardwired backlights.
 
-- ⚡ **Web Portal Reliability & Responsiveness**:
+- ⚡ **Web Portal Reliability & Navigation**:
+  - Added dedicated **Reboot** button to the main configuration portal menu between **Update** and **Exit**.
   - Resolved parameter buffer truncation in WiFiManager.
   - Implemented single-flight sequential async request queue (`/api/brightness`) with active connection cleanup to prevent TCP socket exhaustion during fast slider interactions.
 
@@ -39,3 +40,4 @@ pio run -e supermini -t upload
 # Via OTA Wi-Fi
 pio run -e supermini_ota -t upload --upload-port <device-ip>
 ```
+

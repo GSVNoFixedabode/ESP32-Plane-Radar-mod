@@ -469,7 +469,7 @@ void ensureWifiManager() {
   snprintf(title_buf, sizeof(title_buf), "Plane Radar %s", config::kFirmwareVersion);
   s_wm.setTitle(title_buf);
 
-  std::vector<const char*> menu = {"wifi", "param", "info", "update", "exit"};
+  std::vector<const char*> menu = {"wifi", "param", "info", "update", "restart", "exit"};
   s_wm.setMenu(menu);
   s_wm.setCustomHeadElement(kCustomHead);
 
