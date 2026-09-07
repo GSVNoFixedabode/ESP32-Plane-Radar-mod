@@ -15,8 +15,8 @@ namespace {
 
 constexpr char kApiBase[] = "https://opendata.adsb.fi/api/v3/lat/";
 constexpr float kKmPerNm = 1.852f;
-constexpr int kConnectAttemptMs = 500;
-constexpr unsigned long kRequestTimeoutMs = 3500;
+constexpr int kConnectAttemptMs = 4000;
+constexpr unsigned long kRequestTimeoutMs = 6000;
 
 Aircraft s_aircraft[kMaxAircraft];
 size_t s_aircraft_count = 0;
@@ -30,61 +30,31 @@ void pollNetwork() {
 
 int performGetWithPoll(HTTPClient& http) {
   http.setConnectTimeout(kConnectAttemptMs);
-  const unsigned long deadline = millis() + kRequestTimeoutMs;
-  while (millis() < deadline) {
-    pollNetwork();
-    const int code = http.GET();
-    if (code > 0) {
-      return code;
-    }
-    if (code != HTTPC_ERROR_CONNECTION_REFUSED &&
-        code != HTTPC_ERROR_NOT_CONNECTED) {
-      return code;
-    }
-    pollNetwork();
-    yield();
-  }
-  return HTTPC_ERROR_READ_TIMEOUT;
+  http.setTimeout(kRequestTimeoutMs);
+  pollNetwork();
+  return http.GET();
 }
 
-bool readResponseBodyWithPoll(HTTPClient& http, String& payload) {
-  WiFiClient* stream = http.getStreamPtr();
-  if (stream == nullptr) {
-    return false;
-  }
-
-  const int content_length = http.getSize();
-  if (content_length > 0) {
-    payload.reserve(static_cast<unsigned>(content_length + 1));
-  }
-
-  uint8_t buffer[1024];
-  const unsigned long deadline = millis() + kRequestTimeoutMs;
-  while (millis() < deadline) {
-    pollNetwork();
-    const int available = stream->available();
-    if (available > 0) {
-      const int to_read =
-          available > static_cast<int>(sizeof(buffer)) ? static_cast<int>(sizeof(buffer))
-                                                       : available;
-      const int read_bytes = stream->readBytes(buffer, to_read);
-      if (read_bytes > 0) {
-        payload.concat(reinterpret_cast<const char*>(buffer),
-                       static_cast<unsigned>(read_bytes));
-      }
-    }
-    if (content_length > 0 &&
-        static_cast<int>(payload.length()) >= content_length) {
-      break;
-    }
-    if (!http.connected() && stream->available() <= 0) {
-      break;
-    }
-    pollNetwork();
-    yield();
-  }
-
-  return payload.length() > 0;
+void buildAdsbFilter(JsonDocument& filter) {
+  filter["ac"][0]["lat"] = true;
+  filter["ac"][0]["lon"] = true;
+  filter["ac"][0]["flight"] = true;
+  filter["ac"][0]["hex"] = true;
+  filter["ac"][0]["t"] = true;
+  filter["ac"][0]["alt_baro"] = true;
+  filter["ac"][0]["alt_geom"] = true;
+  filter["ac"][0]["track"] = true;
+  filter["ac"][0]["true_heading"] = true;
+  filter["ac"][0]["mag_heading"] = true;
+  filter["ac"][0]["dir"] = true;
+  filter["ac"][0]["gs"] = true;
+  filter["ac"][0]["tas"] = true;
+  filter["ac"][0]["ias"] = true;
+  filter["ac"][0]["dbFlags"] = true;
+  filter["ac"][0]["mil"] = true;
+  filter["ac"][0]["emergency"] = true;
+  filter["ac"][0]["squawk"] = true;
+  filter["ac"][0]["category"] = true;
 }
 
 float kmToNauticalMiles(float km) { return km / kKmPerNm; }
@@ -368,6 +338,8 @@ bool fetchUpdate(double center_lat, double center_lon, float fetch_radius_km) {
   }
 
   http.useHTTP10(true);
+  http.addHeader("Connection", "close");
+  http.addHeader("Accept-Encoding", "identity");
   http.setTimeout(kRequestTimeoutMs);
   const int code = performGetWithPoll(http);
   if (code != HTTP_CODE_OK) {
@@ -376,18 +348,25 @@ bool fetchUpdate(double center_lat, double center_lon, float fetch_radius_km) {
     return false;
   }
 
-  String payload;
-  if (!readResponseBodyWithPoll(http, payload)) {
-    Serial.println("adsb: empty response");
+  WiFiClient* stream = http.getStreamPtr();
+  if (stream == nullptr) {
+    Serial.println("adsb: getStreamPtr failed");
     http.end();
     return false;
   }
-  http.end();
+  stream->setTimeout(4000);
+
+  JsonDocument filter;
+  buildAdsbFilter(filter);
 
   JsonDocument doc;
-  const DeserializationError err = deserializeJson(doc, payload);
+  const DeserializationError err =
+      deserializeJson(doc, *stream, DeserializationOption::Filter(filter));
+  http.end();
+
   if (err) {
-    Serial.printf("adsb: JSON parse error: %s\n", err.c_str());
+    Serial.printf("adsb: JSON parse error: %s (free heap=%u)\n", err.c_str(),
+                  static_cast<unsigned>(ESP.getFreeHeap()));
     return false;
   }
 

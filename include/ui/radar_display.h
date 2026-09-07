@@ -2,6 +2,9 @@
 
 namespace ui {
 
+/** Initialize and pre-allocate radar frame buffer. */
+void radarDisplayInit();
+
 /** Draw the static sonar/radar grid (black disc, green overlay, labels). */
 void radarDisplayDraw();
 

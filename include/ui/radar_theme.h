@@ -2,65 +2,69 @@
 
 #include <cstdint>
 
+#include "hardware/display.h"
+
 namespace ui::radar {
 
-constexpr int kSize = 240;
-constexpr int kCenterX = kSize / 2;
-constexpr int kCenterY = kSize / 2;
+inline int size() { return tft.width() > 0 ? tft.width() : 240; }
+inline int centerX() { return size() / 2; }
+inline int centerY() { return size() / 2; }
 
 /** Outermost grid ring (inside edge labels). */
-constexpr int kGridOuterRadius = 107;
+inline int gridOuterRadius() { return (size() * 107) / 240; }
 
 /** N: offset from top edge (top_center, negative = up). */
-constexpr int kCardinalNorthOffsetY = -1;
+inline int cardinalNorthOffsetY() { return size() >= 360 ? -2 : -1; }
 /** S: offset from bottom edge (bottom_center, positive = down). */
-constexpr int kCardinalSouthOffsetY = 3;
+inline int cardinalSouthOffsetY() { return size() >= 360 ? 4 : 3; }
 
 /** Gap between scale label right edge and outer ring on the east spoke (px). */
-constexpr int kScaleGapFromOuterRing = 6;
+inline int scaleGapFromOuterRing() { return size() >= 360 ? 9 : 6; }
 
 /** Target cap height (px) for N/S/E/W. */
-constexpr int kCardinalLabelHeightPx = 14;
+inline int cardinalLabelHeightPx() { return size() >= 360 ? 20 : 14; }
 /** Scale label is this many px shorter than cardinals. */
-constexpr int kScaleBelowCardinalPx = 3;
+inline int scaleBelowCardinalPx() { return size() >= 360 ? 4 : 3; }
 
 constexpr int kRingCount = 4;
 
-/** Shared grid stroke: drawWideLine half-width (~2 px total); rings use the same px count. */
-constexpr float kGridStrokeHalfWidth = 1.0f;
+/** Shared grid stroke: drawWideLine half-width; rings use the same px count. */
+inline float gridStrokeHalfWidth() { return size() >= 360 ? 1.2f : 1.0f; }
 
-constexpr int kCenterDotRadius = 2;
+inline int centerDotRadius() { return size() >= 360 ? 3 : 2; }
 
 /** Filled aircraft symbol (nose triangle). */
-constexpr int kAircraftNoseLenPx = 8;
-constexpr int kAircraftTailLenPx = 3;
-constexpr int kAircraftTailHalfPx = 4;
+inline int aircraftNoseLenPx() { return size() >= 360 ? 12 : 8; }
+inline int aircraftTailLenPx() { return size() >= 360 ? 5 : 3; }
+inline int aircraftTailHalfPx() { return size() >= 360 ? 6 : 4; }
 /** Track vector: ground distance covered in this many seconds at current gs. */
 constexpr float kAircraftTrackHorizonSec = 60.0f;
 /** Minimum visible vector when gs > 0 (px). */
-constexpr int kAircraftSpeedLineMinPx = 2;
+inline int aircraftSpeedLineMinPx() { return size() >= 360 ? 3 : 2; }
 /** Track line length uses this outer_km, not the active range preset. */
 constexpr float kAircraftTrackRefOuterKm = 13.3f;
 /** Shorter than full 60 s horizon at ref scale; ×1.5 length boost applied. */
 constexpr float kAircraftTrackLengthScale = 1.5f / 5.0f;
-/** drawWideLine half-width for speed vectors (~2 px total). */
-constexpr float kAircraftTrackLineHalfWidth = 1.0f;
+/** drawWideLine half-width for speed vectors. */
+inline float aircraftTrackLineHalfWidth() { return size() >= 360 ? 1.2f : 1.0f; }
 
-constexpr float kRunwayLineWidthPx = 2.0f;
-constexpr float kRunwayLineHalfWidth = kRunwayLineWidthPx * 0.5f;
-constexpr int kRunwayLabelHeightPx = kCardinalLabelHeightPx;
-constexpr int kRunwayLabelGapPx = 3;
+inline float runwayLineWidthPx() { return size() >= 360 ? 3.0f : 2.0f; }
+inline float runwayLineHalfWidth() { return runwayLineWidthPx() * 0.5f; }
+inline int runwayLabelHeightPx() { return cardinalLabelHeightPx(); }
+inline int runwayLabelGapPx() { return size() >= 360 ? 4 : 3; }
 /** Gap from triangle edge to tag block (px). */
-constexpr int kAircraftLabelGapPx = 1;
+inline int aircraftLabelGapPx() { return size() >= 360 ? 2 : 1; }
 /** Keep symbol centroid inside outer ring by at least this inset (px). */
-constexpr int kAircraftInsideRingInsetPx =
-    kAircraftNoseLenPx + kAircraftTailHalfPx + 1;
+inline int aircraftInsideRingInsetPx() {
+  return aircraftNoseLenPx() + aircraftTailHalfPx() + 1;
+}
 
 /** Beyond-ring traffic: bearing cues on screen rim (correct direction, fixed radius). */
-constexpr int kBeyondRingDotRadiusPx = 4;
-constexpr int kBeyondRingScreenMarginPx = 2;
+inline int beyondRingDotRadiusPx() { return size() >= 360 ? 6 : 4; }
+inline int beyondRingScreenMarginPx() { return size() >= 360 ? 3 : 2; }
 /** Target cap height (px) for aircraft tags (bold, slightly above scale label). */
-constexpr int kAircraftTagLabelHeightPx = 13;
+inline int aircraftTagLabelHeightPx() { return size() >= 360 ? 19 : 13; }
+
 
 /** RGB565 palette targets (applied in initPalette). */
 constexpr uint8_t kBgR = 4;

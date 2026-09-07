@@ -17,6 +17,7 @@
 #endif
 
 #include "config.h"
+#include "hardware/display.h"
 #include "services/radar_location.h"
 #include "ui/radar_range.h"
 #include "ui/status_screens.h"
@@ -273,6 +274,10 @@ char s_runways_small_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_rwys_small("show_rwys_s", "Show Small / GA Airfields & Strips", "T", 2,
                                         s_runways_small_attrs, WFM_LABEL_AFTER);
 
+char s_display_select_html[750] = "";
+WiFiManagerParameter s_param_display_select(s_display_select_html);
+WiFiManagerParameter s_param_display_model("disp_model", "Display Model", "0", 4, "type=\"hidden\"");
+
 constexpr char kFooterHtml[] =
     "<div id='radar-repo-footer' class='radar-footer'>"
     "<div>Plane Radar <strong>" PLANE_RADAR_VERSION "</strong></div>"
@@ -314,6 +319,26 @@ void refreshPortalParamDefaults() {
   snprintf(s_runways_small_attrs, sizeof(s_runways_small_attrs),
            "type=\"checkbox\"%s", ui::radar::showRunwaysSmall() ? " checked" : "");
   s_param_rwys_small.setValue("T", 2);
+
+  const config::DisplayModel current_model = displayGetModel();
+  snprintf(s_display_select_html, sizeof(s_display_select_html),
+           "<div class='radar-card' style='text-align:left;'>"
+           "<div style='font-size:15px;font-weight:bold;margin-bottom:8px;text-align:center;'>&#x1F4FA; Display Hardware</div>"
+           "<label style='display:block;margin:6px 0;cursor:pointer;font-size:13px;'>"
+           "<input type='radio' name='_disp_radio' value='0' onchange=\"document.getElementById('disp_model').value='0'\"%s> "
+           "<strong>GC9A01 (1.28&quot; 240&times;240 Round)</strong>"
+           "</label>"
+           "<label style='display:block;margin:6px 0;cursor:pointer;font-size:13px;'>"
+           "<input type='radio' name='_disp_radio' value='1' onchange=\"document.getElementById('disp_model').value='1'\"%s> "
+           "<strong>GC9B71 / GC9B72 (2.1&quot; 360&times;360 Round)</strong>"
+           "</label>"
+           "<div style='font-size:11px;color:rgba(128,128,128,0.9);margin-top:6px;'>* Display change takes effect on device restart. Backlight on GPIO5.</div>"
+           "</div>",
+           (current_model == config::DisplayModel::GC9A01_240x240) ? " checked" : "",
+           (current_model == config::DisplayModel::GC9B71_360x360) ? " checked" : "");
+  s_param_display_select.setValue(s_display_select_html, sizeof(s_display_select_html));
+  s_param_display_model.setValue(
+      (current_model == config::DisplayModel::GC9B71_360x360) ? "1" : "0", 4);
 }
 
 void onPortalParamsSaved() {
@@ -328,6 +353,7 @@ void onPortalParamsSaved() {
   ui::radar::saveRunwaysMediumFromPortal(s_param_rwys_medium.getValue());
   ui::radar::saveRunwaysMilitaryFromPortal(s_param_rwys_mil.getValue());
   ui::radar::saveRunwaysSmallFromPortal(s_param_rwys_small.getValue());
+  displaySetModelFromPortal(s_param_display_model.getValue());
 }
 
 void attachPortalParams(WiFiManager& wm) {
@@ -342,6 +368,8 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_rwys_medium);
   wm.addParameter(&s_param_rwys_mil);
   wm.addParameter(&s_param_rwys_small);
+  wm.addParameter(&s_param_display_select);
+  wm.addParameter(&s_param_display_model);
   wm.addParameter(&s_param_footer);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }

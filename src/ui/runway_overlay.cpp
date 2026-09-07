@@ -74,7 +74,7 @@ void initRunwayLabelStyle(lgfx::LGFXBase& gfx) {
     return;
   }
 
-  const int target = radar::kRunwayLabelHeightPx;
+  const int target = radar::runwayLabelHeightPx();
   if (displayFontIsSmooth()) {
     s_runway_label_use_vlw = true;
     s_runway_label_vlw_size = findVlwSizeForHeight(gfx, target);
@@ -111,25 +111,25 @@ void offsetKmFromCenter(float lat, float lon, float* dx_km, float* dy_km,
 void latLonToScreen(float lat, float lon, int* out_x, int* out_y) {
   const float outer_km = radar::rangeCurrent().outer_km;
   const float px_per_km =
-      static_cast<float>(radar::kGridOuterRadius) / outer_km;
+      static_cast<float>(radar::gridOuterRadius()) / outer_km;
 
   float dx_km = 0.0f;
   float dy_km = 0.0f;
   float dist_km = 0.0f;
   offsetKmFromCenter(lat, lon, &dx_km, &dy_km, &dist_km);
 
-  *out_x = radar::kCenterX + static_cast<int>(lroundf(dx_km * px_per_km));
-  *out_y = radar::kCenterY - static_cast<int>(lroundf(dy_km * px_per_km));
+  *out_x = radar::centerX() + static_cast<int>(lroundf(dx_km * px_per_km));
+  *out_y = radar::centerY() - static_cast<int>(lroundf(dy_km * px_per_km));
 }
 
 int distSqFromCenter(int x, int y) {
-  const int dx = x - radar::kCenterX;
-  const int dy = y - radar::kCenterY;
+  const int dx = x - radar::centerX();
+  const int dy = y - radar::centerY();
   return dx * dx + dy * dy;
 }
 
 void clipPointToOuterRing(int x0, int y0, int* x1, int* y1) {
-  const int max_r = radar::kGridOuterRadius;
+  const int max_r = radar::gridOuterRadius();
   const int max_r_sq = max_r * max_r;
   if (distSqFromCenter(*x1, *y1) <= max_r_sq) {
     return;
@@ -156,9 +156,9 @@ void clipPointToOuterRing(int x0, int y0, int* x1, int* y1) {
 }
 
 bool segmentIntersectsDisc(int x0, int y0, int x1, int y1) {
-  const int cx = radar::kCenterX;
-  const int cy = radar::kCenterY;
-  const int r = radar::kGridOuterRadius;
+  const int cx = radar::centerX();
+  const int cy = radar::centerY();
+  const int r = radar::gridOuterRadius();
   const int r_sq = r * r;
 
   if (distSqFromCenter(x0, y0) <= r_sq || distSqFromCenter(x1, y1) <= r_sq) {
@@ -222,16 +222,16 @@ bool drawRunwayLine(lgfx::LGFXBase& gfx, const data::large_airports::Runway& rw)
   clipPointToOuterRing(x0, y0, &x1, &y1);
   clipPointToOuterRing(x1, y1, &x0, &y0);
 
-  gfx.drawWideLine(x0, y0, x1, y1, radar::kRunwayLineHalfWidth,
+  gfx.drawWideLine(x0, y0, x1, y1, radar::runwayLineHalfWidth(),
                    radar::kColorRunway);
   return true;
 }
 
 void offsetLabelFromCenter(int ax, int ay, int* lx, int* ly) {
-  const int dx = ax - radar::kCenterX;
-  const int dy = ay - radar::kCenterY;
+  const int dx = ax - radar::centerX();
+  const int dy = ay - radar::centerY();
   const float len = sqrtf(static_cast<float>(dx * dx + dy * dy));
-  const int gap = radar::kRunwayLabelGapPx;
+  const int gap = radar::runwayLabelGapPx();
   if (len < 1.0f) {
     *lx = ax;
     *ly = ay - gap;
@@ -242,9 +242,9 @@ void offsetLabelFromCenter(int ax, int ay, int* lx, int* ly) {
 }
 
 void clipPointOntoOuterRing(int* x, int* y) {
-  const int cx = radar::kCenterX;
-  const int cy = radar::kCenterY;
-  const int r = radar::kGridOuterRadius;
+  const int cx = radar::centerX();
+  const int cy = radar::centerY();
+  const int r = radar::gridOuterRadius();
   const int dx = *x - cx;
   const int dy = *y - cy;
   const int d_sq = dx * dx + dy * dy;

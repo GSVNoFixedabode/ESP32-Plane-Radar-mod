@@ -4,7 +4,7 @@
 
 #include <driver/gpio.h>
 
-#define PLANE_RADAR_VERSION "v2.0.1"
+#define PLANE_RADAR_VERSION "v2.1.0"
 
 namespace config {
 
@@ -35,15 +35,21 @@ constexpr unsigned long kBootResetHoldMs = 3000UL;
 /** Ignore BOOT taps shorter than this (debounce). */
 constexpr unsigned long kBootTapMinMs = 40UL;
 
-// --- Display: GC9A01 1.28" round 240×240 (SPI) ---
+// --- Display Models & Pins ---
+enum class DisplayModel : uint8_t {
+  GC9A01_240x240 = 0,
+  GC9B71_360x360 = 1,
+};
+
 constexpr gpio_num_t kDisplayPinRst = GPIO_NUM_0;
 constexpr gpio_num_t kDisplayPinCs = GPIO_NUM_1;
 constexpr gpio_num_t kDisplayPinDc = GPIO_NUM_10;
 constexpr gpio_num_t kDisplayPinMosi = GPIO_NUM_3;  // display SDA
 constexpr gpio_num_t kDisplayPinSclk = GPIO_NUM_4;  // display SCL
+constexpr gpio_num_t kDisplayPinBl = GPIO_NUM_5;    // display Backlight (PWM)
 
-constexpr int kDisplayWidth = 240;
-constexpr int kDisplayHeight = 240;
+constexpr uint8_t kDisplayPwmChannel = 0;
+constexpr uint32_t kDisplayPwmFreq = 5000;
 
 constexpr uint32_t kDisplaySpiWriteHz = 40000000;
 // GC9A01 modules often need invert + BGR for correct black/green output

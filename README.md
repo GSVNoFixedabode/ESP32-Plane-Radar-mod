@@ -5,19 +5,22 @@
 **3D printed case (STL + assembly):** [MakerWorld](https://makerworld.com/en/models/2872376-esp32-plane-radar-live-ads-b-on-a-round-display#profileId-3207083) · **Firmware:** [Releases](https://github.com/MatixYo/ESP32-Plane-Radar/releases)
 
 > [!NOTE]
-> **Enhanced Edition (v2.0.1)**: This version includes several major features not currently in the upstream main release:
+> **Enhanced Edition (v2.1.0)**: This version includes several major features:
+> - 📺 **Dual Display Hardware Support**: Native support for both **1.28" (240×240 GC9A01)** and **2.1" (360×360 GC9B71 / GC9B72)** round TFT displays, selectable directly in the web setup portal and persisted in NVS flash memory.
+> - ⚡ **Flicker-Free 8-bit Double Buffering**: Smooth, tear-free SPI DMA double-buffered rendering adapting dynamically to 240×240 or 360×360 canvas sizes.
+> - 💡 **LEDC PWM Backlight Control**: Hardware PWM backlight regulation on GPIO 5 (LEDC Channel 0).
+> - 🚀 **Zero-Heap Stream Ingestion**: Direct socket streaming parser with on-the-fly field filtering in ArduinoJson, eliminating memory fragmentation and dropouts.
 > - 🗺️ **Interactive OpenStreetMap Picker** & phone GPS / IP geolocation in the setup portal.
 > - 🎨 **Aircraft Category Color Coding** (🔴 Military = Red, 🔵 Commercial = Cyan, 🟢 GA = Green, 🟡 Heli = Gold).
 > - 🚨 **Flashing Emergency Aircraft** (real-time 400ms blink for squawk `7700`/`7600`/`7500` & active emergencies).
 > - 🛫 **Multi-Category Airfield Overlays** (10,500+ global airfields with independent toggles for Major, Regional, Military, and GA).
 > - 🌙 **Automatic & Manual Day / Night Mode** (automatic sunset-to-sunrise astronomical solar calculation via NTP + GPS coordinates, or manual dimmed ~45% brightness palette).
-> - ⚡ **High-Responsiveness Web Portal** (non-blocking request streaming with zero web interface lag).
 > - 📡 **Wireless OTA Updates** via PlatformIO (`supermini_ota`) and web browser (`/update`).
 > - 🖥️ **Boot Status Display** (5-second screen showing IP and `plane-radar.local`).
 >
-> **Upgrading existing devices:** Devices running earlier versions must be flashed **once via USB** (using a PC or an **Android phone** with [esptool-js](https://espressif.github.io/esptool-js/)) with `plane-radar-v2.0.1-merged.bin` at offset `0x0` to write the new dual OTA partition table. After this initial flash, all future updates can be done **100% wirelessly over Wi-Fi**.
+> **Upgrading existing devices:** Devices running earlier partition tables must be flashed **once via USB** (using a PC or an **Android phone** with [esptool-js](https://espressif.github.io/esptool-js/)) with `plane-radar-v2.1.0-merged.bin` at offset `0x0` to write the dual OTA partition table. After this initial flash, all future updates can be done **100% wirelessly over Wi-Fi**.
 
-Firmware for an **ESP32-C3 Super Mini** and a **1.28″ round GC9A01** display (240×240). Shows a circular **ADS-B radar** around your configured location, with **WiFiManager** for first-time setup.
+Firmware for an **ESP32-C3 Super Mini** driving a round TFT display (**1.28″ GC9A01 240×240** or **2.1″ GC9B71/GC9B72 360×360**). Shows a circular **ADS-B radar** around your configured location, with **WiFiManager** for first-time setup.
 
 ## What it does
 
@@ -54,6 +57,7 @@ The same portal runs on the setup AP and on the device’s LAN IP while connecte
 
 | Field | Purpose |
 |-------|---------|
+| **📺 Display Hardware** | Choose between **GC9A01 (1.28" 240×240)** or **GC9B71 / GC9B72 (2.1" 360×360)** |
 | **🗺️ Interactive Map** | Tap anywhere or drag the pin on OpenStreetMap to auto-fill latitude & longitude |
 | **📍 Auto Locate** | One-tap phone GPS / IP geolocation fallback (`/api/geolocate`) |
 | **Latitude / Longitude** | Radar center and ADS-B query position (defaults in `config.h` until set) |
@@ -65,7 +69,7 @@ The same portal runs on the setup AP and on the device’s LAN IP while connecte
 | **Military Airbases & Stations** | Military airbases, RAF & Air Force stations (e.g. RAF Coningsby `EGXC`, Lakenheath `EGUL`) |
 | **Small / GA Airfields & Strips** | General aviation airfields, flying clubs, and light strips |
 
-After boot and Wi‑Fi connection, the device displays a **5-second status screen** showing its IP address and mDNS address (`http://plane-radar.local`). After a reset, the device reboots and shows the setup screen immediately.
+After boot and Wi‑Fi connection, the device displays a **5-second status screen** showing its IP address, mDNS address (`http://plane-radar.local`), and selected display driver. After a reset, the device reboots and shows the setup screen immediately.
 
 ## Radar display
 
@@ -125,6 +129,7 @@ Aircraft are categorized and color-coded on the radar:
 ### ADS-B
 
 - Source: `https://opendata.adsb.fi/api/v3/`
+- Zero-heap streaming parser: streams response tokens straight from socket into ArduinoJson with dynamic memory filtering
 - Fetch radius: `ui::radar::fetchRadiusKm()` — scales with the active preset to roughly the screen edge (so rim dots have data)
 - Poll interval: `kAdsbFetchIntervalMs` (3 s) in `config.h`
 - Ground aircraft hidden by default (`kAdsbShowGroundAircraft`)
@@ -138,7 +143,7 @@ Edit **`include/config.h`** for hardware and behavior:
 | Portal | `kPortalApName`, `kPortalIp`, `kPortalHostname` / `kPortalHostUrl` (mDNS; needs `-DWM_MDNS` in `platformio.ini`) |
 | Wi‑Fi timing | connect attempts, reconnect grace, portal timeout (`0` = no timeout) |
 | BOOT | `kBootPin`, `kBootResetHoldMs`, `kBootTapMinMs` |
-| Display SPI | pins, `kDisplayInvert`, `kDisplayRgbOrder`, `kDisplaySpiWriteHz` |
+| Display SPI & PWM | `kDisplayPinRst`, `kDisplayPinCs`, `kDisplayPinDc`, `kDisplayPinMosi`, `kDisplayPinSclk`, `kDisplayPinBl`, `kDisplayPwmChannel`, `kDisplayPwmFreq` |
 | Default location | `kDefaultRadarLat`, `kDefaultRadarLon` (until portal overrides) |
 | ADS-B | `kAdsbFetchIntervalMs`, `kAdsbShowGroundAircraft` |
 
@@ -169,6 +174,7 @@ data/
   ui_font.vlw              — embedded smooth UI font (Noto Sans Bold)
 scripts/
   build_large_airports.py
+  merge_firmware.py
 src/
   main.cpp
   data/
@@ -178,18 +184,19 @@ src/
   services/
 ```
 
-## Wiring (GC9A01 ↔ ESP32-C3 Super Mini)
+## Wiring (Display ↔ ESP32-C3 Super Mini)
 
-| Display | ESP32-C3 |
-|---------|----------|
-| VCC | 3V3 |
-| GND | GND |
-| RST | GPIO **0** |
-| CS | GPIO **1** |
-| DC | GPIO **10** |
-| SDA (MOSI) | GPIO **3** |
-| SCL (SCLK) | GPIO **4** |
-| BOOT (user) | GPIO **9** |
+| Display Pin (GC9A01 / GC9B71) | ESP32-C3 Super Mini | Notes |
+|-------------------------------|---------------------|-------|
+| **VCC** | 3V3 / 5V | 3.3V logic (or 5V if module has onboard 3.3V LDO) |
+| **GND** | GND | Ground |
+| **RST** | GPIO **0** | Reset |
+| **CS** | GPIO **1** | Chip Select |
+| **DC** | GPIO **10** | Data / Command |
+| **SDA (MOSI)** | GPIO **3** | SPI Data Out |
+| **SCL (SCLK)** | GPIO **4** | SPI Clock |
+| **BLK / BL / LED** | GPIO **5** | Backlight (LEDC PWM Channel 0) |
+| **BOOT (Button)** | GPIO **9** | Onboard BOOT button on Super Mini |
 
 ## Build & Upload
 
@@ -204,16 +211,16 @@ pio device monitor
 
 ### Wireless OTA Upload (Over Wi-Fi)
 ```bash
-pio run -t upload -e supermini_ota
+pio run -t upload -e supermini_ota --upload-port 192.168.0.xxx
 ```
 - PlatformIO env: **`supermini_ota`**
 - Or upload `firmware.bin` via the web browser at **`http://plane-radar.local/update`** or **`http://<device-ip>/update`**.
 
 ### Web-flashable release image (PC or Android Mobile)
 
-Single `.bin` (`plane-radar-v2.0.1-merged.bin`) for [esptool-js](https://espressif.github.io/esptool-js/) and [ESP Web Tools](https://web.esphome.io/) (ESP32-C3, 4 MB, flash at **0x0**):
+Single `.bin` (`plane-radar-v2.1.0-merged.bin`) for [esptool-js](https://espressif.github.io/esptool-js/) and [ESP Web Tools](https://web.esphome.io/) (ESP32-C3, 4 MB, flash at **0x0**):
 
-- **From a PC (Chrome / Edge):** Plug in the ESP32, visit [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), select `plane-radar-v2.0.1-merged.bin` at `0x0`, and click Program.
+- **From a PC (Chrome / Edge):** Plug in the ESP32, visit [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), select `plane-radar-v2.1.0-merged.bin` at `0x0`, and click Program.
 - **From an Android Mobile Phone:** Plug the ESP32 into your phone using a USB-C to USB-C / OTG cable, open Chrome, navigate to [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), and flash directly from your phone.
 
 To build the merged binary locally:
@@ -221,20 +228,20 @@ To build the merged binary locally:
 pio run -e supermini
 pio run -t merge -e supermini
 ```
-*(Output: `.pio/build/supermini/firmware-merged.bin` or `bin/plane-radar-v2.0.1-merged.bin`).*
+*(Output: `.pio/build/supermini/firmware-merged.bin`).*
 
 ### CI and releases (GitHub Actions)
 
 | Workflow | When | Output |
 |----------|------|--------|
 | [Build](.github/workflows/build.yml) | Push / PR to `main` | Artifact `plane-radar-supermini` (merged + split `.bin` files, ~90 days) |
-| [Release](.github/workflows/release.yml) | Git tag `v*` (e.g. `v1.0.0`) | GitHub Release asset `plane-radar-v1.0.0.bin` + `.sha256` |
+| [Release](.github/workflows/release.yml) | Git tag `v*` (e.g. `v2.1.0`) | GitHub Release asset `plane-radar-v2.1.0.bin` + `.sha256` |
 
 To ship a version users can download:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v2.1.0
+git push origin v2.1.0
 ```
 
 The release workflow builds firmware in CI and attaches the merged image to the release. Download from **Releases** on GitHub, then flash at **0x0** (ESP32-C3, 4 MB).

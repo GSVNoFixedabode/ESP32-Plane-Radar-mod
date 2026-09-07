@@ -125,8 +125,8 @@ uint8_t rangeIndex() { return s_range_index; }
 float fetchRadiusKm() {
   const float outer_km = rangeCurrent().outer_km;
   const float screen_r_px =
-      static_cast<float>(kCenterX - kBeyondRingScreenMarginPx);
-  return outer_km * (screen_r_px / static_cast<float>(kGridOuterRadius));
+      static_cast<float>(centerX() - beyondRingScreenMarginPx());
+  return outer_km * (screen_r_px / static_cast<float>(gridOuterRadius()));
 }
 
 bool useMiles() { return s_use_miles; }

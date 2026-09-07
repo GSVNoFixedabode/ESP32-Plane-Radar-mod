@@ -14,13 +14,12 @@
 namespace {
 
 constexpr int kLineGap = 6;
-const int kCenterX = config::kDisplayWidth / 2;
-const int kCenterY = config::kDisplayHeight / 2;
+inline int centerX() { return tft.width() > 0 ? tft.width() / 2 : 120; }
+inline int centerY() { return tft.height() > 0 ? tft.height() / 2 : 120; }
+inline int displayW() { return tft.width() > 0 ? tft.width() : 240; }
+inline int displayH() { return tft.height() > 0 ? tft.height() : 240; }
 
 constexpr int kSpinnerDotCount = 10;
-constexpr int kSpinnerRadius = 113;
-constexpr int kSpinnerDotRadius = 2;
-constexpr int kSpinnerEraseRadius = 4;
 constexpr float kSpinnerStepDeg = 6.0f;
 
 struct SpinnerDot {
@@ -31,7 +30,6 @@ struct SpinnerDot {
 
 char s_connecting_ssid[33];
 char s_ssid_line[33];
-constexpr int kConnectingTextMaxWidthPx = 220;
 float s_spinner_angle_deg = -90.0f;
 SpinnerDot s_spinner_dots[kSpinnerDotCount];
 bool s_connecting_text_drawn = false;
@@ -62,7 +60,8 @@ int lineHeightVlw(float size) {
 
 void applyLineStyle(const TextLine& line) {
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, line.vlw_size);
+    const float scale = (displayW() >= 360) ? 1.4f : 1.0f;
+    displayFontSetSmoothSize(tft, line.vlw_size * scale);
   } else {
     displayFontSetBitmap(tft, line.gfx_font);
   }
@@ -76,23 +75,26 @@ void drawTextBlock(uint16_t bg, uint16_t fg, const TextLine* lines, size_t count
   int total_h = 0;
   for (size_t i = 0; i < count; ++i) {
     if (displayFontIsSmooth()) {
-      total_h += lineHeightVlw(lines[i].vlw_size);
+      const float scale = (displayW() >= 360) ? 1.4f : 1.0f;
+      total_h += lineHeightVlw(lines[i].vlw_size * scale);
     } else {
       total_h += lineHeightGfx(lines[i].gfx_font);
     }
     if (i + 1 < count) {
-      total_h += kLineGap;
+      total_h += (displayW() >= 360) ? (kLineGap + 3) : kLineGap;
     }
   }
 
-  int y = (config::kDisplayHeight - total_h) / 2;
+  int y = (displayH() - total_h) / 2;
+  const int gap = (displayW() >= 360) ? (kLineGap + 3) : kLineGap;
   for (size_t i = 0; i < count; ++i) {
     applyLineStyle(lines[i]);
     const int h =
-        displayFontIsSmooth() ? lineHeightVlw(lines[i].vlw_size)
-                              : lineHeightGfx(lines[i].gfx_font);
-    tft.drawString(lines[i].text, kCenterX, y + h / 2);
-    y += h + kLineGap;
+        displayFontIsSmooth()
+            ? lineHeightVlw(lines[i].vlw_size * ((displayW() >= 360) ? 1.4f : 1.0f))
+            : lineHeightGfx(lines[i].gfx_font);
+    tft.drawString(lines[i].text, centerX(), y + h / 2);
+    y += h + gap;
   }
 }
 
@@ -100,25 +102,27 @@ constexpr float kConnectingDetailVlw = 0.92f;
 
 void applyConnectingDetailStyle() {
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, kConnectingDetailVlw);
+    const float scale = (displayW() >= 360) ? 1.4f : 1.0f;
+    displayFontSetSmoothSize(tft, kConnectingDetailVlw * scale);
   } else {
     displayFontSetBitmap(tft, &kConnectingGfxDetail);
   }
 }
 
-/** SSID on one line; truncate with … if wider than kConnectingTextMaxWidthPx. */
+/** SSID on one line; truncate with … if wider than max text width. */
 void fitSsidLine() {
+  const int max_w = displayW() - 20;
   strncpy(s_ssid_line, s_connecting_ssid, sizeof(s_ssid_line) - 1);
   s_ssid_line[sizeof(s_ssid_line) - 1] = '\0';
   applyConnectingDetailStyle();
-  if (tft.textWidth(s_ssid_line) <= kConnectingTextMaxWidthPx) {
+  if (tft.textWidth(s_ssid_line) <= max_w) {
     return;
   }
   const size_t len = strlen(s_connecting_ssid);
   for (size_t n = len; n > 0; --n) {
     snprintf(s_ssid_line, sizeof(s_ssid_line), "%.*s…", static_cast<int>(n),
              s_connecting_ssid);
-    if (tft.textWidth(s_ssid_line) <= kConnectingTextMaxWidthPx) {
+    if (tft.textWidth(s_ssid_line) <= max_w) {
       return;
     }
   }
@@ -133,27 +137,30 @@ void drawConnectingText() {
   tft.setTextColor(config::kTextOnBlack, config::kColorBlack);
 
   applyConnectingDetailStyle();
+  const int max_w = displayW() - 20;
   const int detail_h = tft.fontHeight();
-  const int total_h = detail_h * 2 + kLineGap;
-  const int block_top = (config::kDisplayHeight - total_h) / 2;
+  const int gap = (displayW() >= 360) ? (kLineGap + 4) : kLineGap;
+  const int total_h = detail_h * 2 + gap;
+  const int block_top = (displayH() - total_h) / 2;
   constexpr int kPanelPadY = 8;
-  tft.fillRect(kCenterX - kConnectingTextMaxWidthPx / 2, block_top - kPanelPadY,
-               kConnectingTextMaxWidthPx, total_h + kPanelPadY * 2, config::kColorBlack);
+  tft.fillRect(centerX() - max_w / 2, block_top - kPanelPadY,
+               max_w, total_h + kPanelPadY * 2, config::kColorBlack);
 
   int y = block_top;
-  tft.drawString("Connecting to", kCenterX, y + detail_h / 2);
-  y += detail_h + kLineGap;
-  tft.drawString(s_ssid_line, kCenterX, y + detail_h / 2);
+  tft.drawString("Connecting to", centerX(), y + detail_h / 2);
+  y += detail_h + gap;
+  tft.drawString(s_ssid_line, centerX(), y + detail_h / 2);
 
   s_connecting_text_drawn = true;
 }
 
 void eraseSpinnerDots() {
+  const int erase_r = (displayW() >= 360) ? 6 : 4;
   for (int i = 0; i < kSpinnerDotCount; ++i) {
     if (!s_spinner_dots[i].drawn) {
       continue;
     }
-    tft.fillCircle(s_spinner_dots[i].x, s_spinner_dots[i].y, kSpinnerEraseRadius,
+    tft.fillCircle(s_spinner_dots[i].x, s_spinner_dots[i].y, erase_r,
                    config::kColorBlack);
     s_spinner_dots[i].drawn = false;
   }
@@ -162,15 +169,17 @@ void eraseSpinnerDots() {
 void drawSpinnerDots() {
   constexpr float kDegToRad = 0.01745329252f;
   const float head_rad = s_spinner_angle_deg * kDegToRad;
+  const int spinner_r = (displayW() * 113) / 240;
+  const int dot_r = (displayW() >= 360) ? 3 : 2;
 
   for (int i = 0; i < kSpinnerDotCount; ++i) {
     const float a = head_rad - static_cast<float>(i) * (6.283185307f / kSpinnerDotCount);
-    const int x = kCenterX + static_cast<int>(std::lround(std::cos(a) * kSpinnerRadius));
-    const int y = kCenterY + static_cast<int>(std::lround(std::sin(a) * kSpinnerRadius));
+    const int x = centerX() + static_cast<int>(std::lround(std::cos(a) * spinner_r));
+    const int y = centerY() + static_cast<int>(std::lround(std::sin(a) * spinner_r));
 
     const int fade = 255 - i * 22;
     const uint16_t color = tft.color565(0, fade, 0);
-    tft.fillSmoothCircle(x, y, kSpinnerDotRadius, color);
+    tft.fillSmoothCircle(x, y, dot_r, color);
 
     s_spinner_dots[i].x = x;
     s_spinner_dots[i].y = y;
@@ -254,10 +263,10 @@ void statusScreenConnected(const char* ip, const char* hostname) {
 
 namespace {
 int s_last_update_percent = -1;
-constexpr int kBarX = 35;
-constexpr int kBarY = 110;
-constexpr int kBarWidth = 170;
-constexpr int kBarHeight = 16;
+inline int barWidth() { return (displayW() * 170) / 240; }
+inline int barHeight() { return (displayW() >= 360) ? 22 : 16; }
+inline int barX() { return (displayW() - barWidth()) / 2; }
+inline int barY() { return (displayH() * 110) / 240; }
 constexpr int kBarRadius = 4;
 }  // namespace
 
@@ -267,33 +276,34 @@ void statusScreenUpdateBegin(const char* title) {
   tft.setTextColor(config::kTextOnBlack, config::kColorBlack);
   tft.setTextDatum(textdatum_t::middle_center);
 
+  const float scale = (displayW() >= 360) ? 1.4f : 1.0f;
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, 1.15f);
+    displayFontSetSmoothSize(tft, 1.15f * scale);
   } else {
     displayFontSetBitmap(tft, &kPortalGfxTitle);
   }
-  tft.drawString(title != nullptr ? title : "Firmware Update", kCenterX, 48);
+  tft.drawString(title != nullptr ? title : "Firmware Update", centerX(), (displayH() * 48) / 240);
 
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, 0.95f);
+    displayFontSetSmoothSize(tft, 0.95f * scale);
   } else {
     displayFontSetBitmap(tft, &kConnectingGfxDetail);
   }
   tft.setTextColor(tft.color565(120, 200, 255), config::kColorBlack);
-  tft.drawString("Receiving image...", kCenterX, 76);
+  tft.drawString("Receiving image...", centerX(), (displayH() * 76) / 240);
 
   // Outer progress bar border
-  tft.drawRoundRect(kBarX, kBarY, kBarWidth, kBarHeight, kBarRadius, config::kTextOnBlack);
-  tft.fillRect(kBarX + 2, kBarY + 2, kBarWidth - 4, kBarHeight - 4, config::kColorBlack);
+  tft.drawRoundRect(barX(), barY(), barWidth(), barHeight(), kBarRadius, config::kTextOnBlack);
+  tft.fillRect(barX() + 2, barY() + 2, barWidth() - 4, barHeight() - 4, config::kColorBlack);
 
   // Warning text
   tft.setTextColor(config::kColorYellow, config::kColorBlack);
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, 0.88f);
+    displayFontSetSmoothSize(tft, 0.88f * scale);
   } else {
     displayFontSetBitmap(tft, &kConnectingGfxDetail);
   }
-  tft.drawString("Do not unplug power", kCenterX, 185);
+  tft.drawString("Do not unplug power", centerX(), (displayH() * 185) / 240);
 
   statusScreenUpdateProgress(0);
 }
@@ -306,13 +316,13 @@ void statusScreenUpdateProgress(int percent) {
   s_last_update_percent = percent;
 
   // Fill inner bar
-  const int inner_max_w = kBarWidth - 4;
+  const int inner_max_w = barWidth() - 4;
   const int fill_w = (inner_max_w * percent) / 100;
   if (fill_w > 0) {
-    tft.fillRoundRect(kBarX + 2, kBarY + 2, fill_w, kBarHeight - 4, 2, tft.color565(0, 220, 80));
+    tft.fillRoundRect(barX() + 2, barY() + 2, fill_w, barHeight() - 4, 2, tft.color565(0, 220, 80));
   }
   if (inner_max_w - fill_w > 0) {
-    tft.fillRect(kBarX + 2 + fill_w, kBarY + 2, inner_max_w - fill_w, kBarHeight - 4, config::kColorBlack);
+    tft.fillRect(barX() + 2 + fill_w, barY() + 2, inner_max_w - fill_w, barHeight() - 4, config::kColorBlack);
   }
 
   // Draw percentage text
@@ -320,13 +330,15 @@ void statusScreenUpdateProgress(int percent) {
   snprintf(pct_buf, sizeof(pct_buf), "%d%%", percent);
   tft.setTextDatum(textdatum_t::middle_center);
   tft.setTextColor(config::kTextOnBlack, config::kColorBlack);
+  const float scale = (displayW() >= 360) ? 1.4f : 1.0f;
   if (displayFontIsSmooth()) {
-    displayFontSetSmoothSize(tft, 1.10f);
+    displayFontSetSmoothSize(tft, 1.10f * scale);
   } else {
     displayFontSetBitmap(tft, &kPortalGfxBody);
   }
-  tft.fillRect(kCenterX - 40, 138, 80, 24, config::kColorBlack);
-  tft.drawString(pct_buf, kCenterX, 150);
+  const int pct_y = (displayH() * 150) / 240;
+  tft.fillRect(centerX() - 50, pct_y - 12, 100, 24, config::kColorBlack);
+  tft.drawString(pct_buf, centerX(), pct_y);
 }
 
 void statusScreenUpdateEnd() {
