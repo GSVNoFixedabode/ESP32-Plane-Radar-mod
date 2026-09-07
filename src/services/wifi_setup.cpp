@@ -77,22 +77,38 @@ constexpr char kCoordInputAttrs[] =
 
 constexpr char kCustomHead[] =
     "<style>"
-    ".radar-card{background:rgba(128,128,128,0.12);border:1px solid rgba(128,128,128,0.3);border-radius:8px;padding:12px;margin:12px 0 16px 0;text-align:center;}"
-    ".radar-btn-map{background-color:#107c41!important;color:#fff!important;border:none!important;padding:10px 14px!important;border-radius:6px!important;font-weight:bold!important;cursor:pointer!important;width:100%!important;font-size:14px!important;margin:4px 0 8px 0!important;display:block!important;}"
-    ".radar-btn-ip{background-color:#0078d4!important;color:#fff!important;border:none!important;padding:9px 12px!important;border-radius:6px!important;font-size:13px!important;cursor:pointer!important;width:100%!important;margin:4px 0 8px 0!important;display:block!important;}"
-    ".radar-btn-gps{background-color:#4a5568!important;color:#fff!important;border:none!important;padding:8px 12px!important;border-radius:6px!important;font-size:13px!important;cursor:pointer!important;width:100%!important;margin:4px 0 8px 0!important;display:block!important;}"
-    "#map-view{height:250px;width:100%;border-radius:6px;margin:10px 0 6px 0;border:1px solid rgba(128,128,128,0.4);display:none;z-index:10;}"
-    "#gps-status{font-size:12px;line-height:1.4;margin-top:6px;min-height:16px;}"
-    ".radar-footer{text-align:center;margin:28px auto 14px auto;font-size:12px;color:rgba(128,128,128,0.8);border-top:1px solid rgba(128,128,128,0.25);padding-top:12px;max-width:380px;line-height:1.6;}"
+    ".radar-card{background:rgba(128,128,128,0.12);border:1px solid rgba(128,128,128,0.3);border-radius:8px;padding:10px;margin:10px 0;text-align:center;}"
+    ".rbtn{color:#fff!important;border:none!important;padding:8px 12px!important;border-radius:6px!important;cursor:pointer!important;width:100%!important;margin:3px 0 6px 0!important;display:block!important;font-size:13px!important;}"
+    ".rbtn-map{background:#107c41!important;font-weight:bold!important;font-size:14px!important;}"
+    ".rbtn-ip{background:#0078d4!important;}"
+    ".rbtn-gps{background:#4a5568!important;}"
+    "#map-view{height:240px;width:100%;border-radius:6px;margin:8px 0 4px 0;border:1px solid rgba(128,128,128,0.4);display:none;}"
+    "#gps-status{font-size:12px;margin-top:4px;min-height:14px;}"
+    ".r-slider{width:100%!important;margin:4px 0 10px 0!important;}"
+    ".radar-footer{text-align:center;margin:20px auto 10px auto;font-size:12px;color:rgba(128,128,128,0.8);border-top:1px solid rgba(128,128,128,0.25);padding-top:10px;max-width:380px;line-height:1.5;}"
     ".radar-footer a{color:#0078d4!important;text-decoration:none!important;font-weight:bold!important;}"
-    ".radar-footer a:hover{text-decoration:underline!important;}"
     "</style>"
     "<script>"
+    "var _bBusy=false,_bPending=null;"
+    "function _sendB(v){"
+    "if(_bBusy){_bPending=v;return;}"
+    "_bBusy=true;"
+    "fetch('/api/brightness?val='+v)"
+    ".catch(function(){})"
+    ".finally(function(){"
+    "_bBusy=false;"
+    "if(_bPending!==null){var next=_bPending;_bPending=null;_sendB(next);}"
+    "});"
+    "}"
+    "function setB(k,v){"
+    "var l=document.getElementById(k+'_val'),h=document.getElementById(k+'_bright');"
+    "if(l)l.innerText=v+'%';"
+    "if(h)h.value=v;"
+    "_sendB(v);"
+    "}"
     "document.addEventListener('DOMContentLoaded',function(){"
     "if(document.getElementById('radar-repo-footer'))return;"
-    "var f=document.createElement('div');"
-    "f.id='radar-repo-footer';"
-    "f.className='radar-footer';"
+    "var f=document.createElement('div');f.id='radar-repo-footer';f.className='radar-footer';"
     "f.innerHTML='<div>Plane Radar <strong>" PLANE_RADAR_VERSION "</strong></div><div style=\"margin-top:4px;\"><a href=\"https://github.com/oldjiberjaber/ESP32-Plane-Radar\" target=\"_blank\" rel=\"noopener\">&#x1F517; GitHub: oldjiberjaber/ESP32-Plane-Radar</a></div>';"
     "var c=document.querySelector('.container')||document.querySelector('div')||document.body;"
     "if(c&&c.parentNode&&c!==document.body){c.appendChild(f);}else{document.body.appendChild(f);}"
@@ -101,143 +117,51 @@ constexpr char kCustomHead[] =
 
 constexpr char kGpsToolsHtml[] =
     "<div class='radar-card'>"
-    "<div style='font-size:15px;font-weight:bold;margin-bottom:8px;'>&#x1F4CD; Radar Center Location</div>"
-    "<button type='button' class='radar-btn-map' onclick='openMapPicker()'>&#x1F5FA;&#xFE0F; Pick Location on Interactive Map</button>"
-    "<button type='button' class='radar-btn-ip' onclick='fetchIpLocation()'>&#x1F310; Auto-Detect via IP</button>"
-    "<button type='button' class='radar-btn-gps' onclick='fetchPhoneGps()'>&#x1F4CD; Use Phone GPS Sensor</button>"
-    "<div id='map-view'></div>"
-    "<div id='gps-status'></div>"
+    "<div style='font-size:15px;font-weight:bold;margin-bottom:6px;'>&#x1F4CD; Radar Center Location</div>"
+    "<button type='button' class='rbtn rbtn-map' onclick='openMapPicker()'>&#x1F5FA;&#xFE0F; Pick Location on Map</button>"
+    "<button type='button' class='rbtn rbtn-ip' onclick='fetchIpLocation()'>&#x1F310; Auto-Detect via IP</button>"
+    "<button type='button' class='rbtn rbtn-gps' onclick='fetchPhoneGps()'>&#x1F4CD; Use Phone GPS Sensor</button>"
+    "<div id='map-view'></div><div id='gps-status'></div>"
     "</div>"
     "<script>"
     "function openMapPicker(){"
-    "var mapEl=document.getElementById('map-view');"
-    "var s=document.getElementById('gps-status');"
-    "mapEl.style.display='block';"
-    "var elLat=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
-    "var elLon=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
-    "var curLat=parseFloat(elLat?elLat.value:0)||52.3676;"
-    "var curLon=parseFloat(elLon?elLon.value:0)||4.9041;"
-    "function initMap(){"
-    "if(window._radarMap){"
-    "window._radarMap.invalidateSize();"
-    "window._radarMap.setView([curLat,curLon],14);"
-    "if(window._radarMarker) window._radarMarker.setLatLng([curLat,curLon]);"
-    "return;"
-    "}"
-    "var map=L.map('map-view').setView([curLat,curLon],14);"
-    "window._radarMap=map;"
-    "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(map);"
-    "var marker=L.marker([curLat,curLon],{draggable:true}).addTo(map);"
-    "window._radarMarker=marker;"
-    "function updatePos(lat,lon){"
-    "if(elLat) elLat.value=lat.toFixed(6);"
-    "if(elLon) elLon.value=lon.toFixed(6);"
-    "s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; Selected: '+lat.toFixed(6)+', '+lon.toFixed(6)+'</span>';"
-    "}"
-    "marker.on('dragend',function(e){var p=e.target.getLatLng();updatePos(p.lat,p.lng);});"
-    "map.on('click',function(e){marker.setLatLng(e.latlng);updatePos(e.latlng.lat,e.latlng.lng);});"
-    "s.innerHTML='<span style=\"color:#107c41;font-weight:bold;\">&#x2705; Map active: Tap anywhere or drag pin</span>';"
-    "setTimeout(function(){map.invalidateSize();},250);"
-    "}"
-    "if(window.L){"
-    "initMap();"
-    "}else{"
-    "s.innerHTML='<span style=\"color:#0078d4;\">&#x23F3; Loading map...</span>';"
-    "var css=document.createElement('link');"
-    "css.rel='stylesheet';"
-    "css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';"
-    "document.head.appendChild(css);"
-    "var js=document.createElement('script');"
-    "js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';"
-    "js.onload=function(){initMap();};"
-    "js.onerror=function(){s.innerHTML='<span style=\"color:#d9534f;\">Map could not be loaded. Use Auto-Detect via IP or enter coordinates manually.</span>';};"
-    "document.head.appendChild(js);"
-    "}"
-    "}"
-    "function fetchPhoneGps(){"
-    "var s=document.getElementById('gps-status');"
-    "if(!navigator.geolocation){"
-    "s.innerHTML='<span style=\"color:#d9534f\">&#x26A0; Geolocation is not supported by this browser.</span>';"
-    "return;"
-    "}"
-    "s.innerHTML='<span style=\"color:#0078d4\">&#x23F3; Requesting GPS position from device...</span>';"
-    "navigator.geolocation.getCurrentPosition("
-    "function(pos){"
-    "var lat=pos.coords.latitude.toFixed(6);"
-    "var lon=pos.coords.longitude.toFixed(6);"
-    "var acc=Math.round(pos.coords.accuracy||0);"
-    "var elLat=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
-    "var elLon=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
-    "if(elLat)elLat.value=lat;"
-    "if(elLon)elLon.value=lon;"
-    "s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; Acquired: '+lat+', '+lon+(acc?' (&plusmn;'+acc+'m)':'')+'</span>';"
-    "if(window._radarMap){"
-    "window._radarMap.setView([parseFloat(lat),parseFloat(lon)],15);"
-    "if(window._radarMarker) window._radarMarker.setLatLng([parseFloat(lat),parseFloat(lon)]);"
-    "}"
-    "},"
-    "function(err){"
-    "var m='<div style=\"color:#d9534f;margin-bottom:6px;\">&#x26A0; Browser blocked direct GPS (Chrome/Safari require HTTPS for phone GPS).</div>';"
-    "m+='<div style=\"font-size:12px;color:#555;margin-bottom:8px;\">Please tap <strong>Pick Location on Interactive Map</strong> above to select your location visually.</div>';"
-    "s.innerHTML=m;"
-    "},"
-    "{enableHighAccuracy:true,timeout:10000,maximumAge:0}"
-    ");"
-    "}"
-    "function fetchIpLocation(){"
-    "var s=document.getElementById('gps-status');"
-    "s.innerHTML='<span style=\"color:#0078d4\">&#x23F3; Detecting location from IP...</span>';"
-    "fetch('/api/geolocate')"
-    ".then(function(r){return r.json();})"
-    ".then(function(d){"
-    "if(d&&d.lat&&d.lon){"
-    "var lat=Number(d.lat).toFixed(6);"
-    "var lon=Number(d.lon).toFixed(6);"
-    "var elLat=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
-    "var elLon=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
-    "if(elLat)elLat.value=lat;"
-    "if(elLon)elLon.value=lon;"
-    "s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; IP Location: '+lat+', '+lon+'</span>';"
-    "if(window._radarMap){"
-    "window._radarMap.setView([parseFloat(lat),parseFloat(lon)],14);"
-    "if(window._radarMarker) window._radarMarker.setLatLng([parseFloat(lat),parseFloat(lon)]);"
-    "}"
-    "}else{throw new Error();}"
-    "})"
-    ".catch(function(){"
-    "fetch('https://ipapi.co/json/')"
-    ".then(function(r){return r.json();})"
-    ".then(function(d){"
-    "if(d&&d.latitude&&d.longitude){"
-    "var lat=Number(d.latitude).toFixed(6);"
-    "var lon=Number(d.longitude).toFixed(6);"
-    "var elLat=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
-    "var elLon=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
-    "if(elLat)elLat.value=lat;"
-    "if(elLon)elLon.value=lon;"
-    "s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; IP Location ('+(d.city||'Detected')+'): '+lat+', '+lon+'</span>';"
-    "if(window._radarMap){"
-    "window._radarMap.setView([parseFloat(lat),parseFloat(lon)],14);"
-    "if(window._radarMarker) window._radarMarker.setLatLng([parseFloat(lat),parseFloat(lon)]);"
-    "}"
-    "}else{throw new Error();}"
-    "})"
-    ".catch(function(){"
-    "s.innerHTML='<span style=\"color:#d9534f\">IP lookup unavailable offline. Radar will auto-detect from IP once connected to Wi-Fi.</span>';"
-    "});"
-    "});"
-    "}"
-    "try{"
-    "var p=new URLSearchParams(window.location.search);"
-    "var qLat=p.get('radar_lat')||p.get('lat');"
-    "var qLon=p.get('radar_lon')||p.get('lon');"
-    "if(qLat&&qLon){"
+    "var mEl=document.getElementById('map-view'),s=document.getElementById('gps-status');mEl.style.display='block';"
     "var eLa=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
     "var eLo=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
-    "if(eLa)eLa.value=qLat;"
-    "if(eLo)eLo.value=qLon;"
-    "}"
-    "}catch(e){}"
+    "var cLa=parseFloat(eLa?eLa.value:0)||52.3676,cLo=parseFloat(eLo?eLo.value:0)||4.9041;"
+    "function initM(){"
+    "if(window._rM){window._rM.invalidateSize();window._rM.setView([cLa,cLo],14);if(window._rMk)window._rMk.setLatLng([cLa,cLo]);return;}"
+    "var map=L.map('map-view').setView([cLa,cLo],14);window._rM=map;"
+    "L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}).addTo(map);"
+    "var mk=L.marker([cLa,cLo],{draggable:true}).addTo(map);window._rMk=mk;"
+    "function uP(la,lo){if(eLa)eLa.value=la.toFixed(6);if(eLo)eLo.value=lo.toFixed(6);s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; Selected: '+la.toFixed(6)+', '+lo.toFixed(6)+'</span>';}"
+    "mk.on('dragend',function(e){var p=e.target.getLatLng();uP(p.lat,p.lng);});"
+    "map.on('click',function(e){mk.setLatLng(e.latlng);uP(e.latlng.lat,e.latlng.lng);});"
+    "s.innerHTML='<span style=\"color:#107c41;font-weight:bold;\">&#x2705; Map active: Tap anywhere or drag pin</span>';"
+    "setTimeout(function(){map.invalidateSize();},250);}"
+    "if(window.L){initM();}else{"
+    "s.innerHTML='<span style=\"color:#0078d4;\">&#x23F3; Loading map...</span>';"
+    "var c=document.createElement('link');c.rel='stylesheet';c.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(c);"
+    "var j=document.createElement('script');j.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';j.onload=initM;document.head.appendChild(j);}}"
+    "function fetchPhoneGps(){"
+    "var s=document.getElementById('gps-status');if(!navigator.geolocation){s.innerHTML='&#x26A0; Not supported';return;}"
+    "s.innerHTML='<span style=\"color:#0078d4\">&#x23F3; Getting phone GPS...</span>';"
+    "navigator.geolocation.getCurrentPosition(function(p){"
+    "var la=p.coords.latitude.toFixed(6),lo=p.coords.longitude.toFixed(6);"
+    "var eLa=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
+    "var eLo=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
+    "if(eLa)eLa.value=la;if(eLo)eLo.value=lo;s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; Acquired: '+la+', '+lo+'</span>';"
+    "if(window._rM){window._rM.setView([parseFloat(la),parseFloat(lo)],15);if(window._rMk)window._rMk.setLatLng([parseFloat(la),parseFloat(lo)]);}"
+    "},function(){s.innerHTML='<span style=\"color:#d9534f\">&#x26A0; GPS blocked (requires HTTPS). Tap Map above.</span>';},{enableHighAccuracy:true,timeout:10000});}"
+    "function fetchIpLocation(){"
+    "var s=document.getElementById('gps-status');s.innerHTML='<span style=\"color:#0078d4\">&#x23F3; Detecting IP location...</span>';"
+    "fetch('/api/geolocate').then(function(r){return r.json();}).then(function(d){"
+    "if(d&&d.lat&&d.lon){var la=Number(d.lat).toFixed(6),lo=Number(d.lon).toFixed(6);"
+    "var eLa=document.getElementById('radar_lat')||document.querySelector('input[name=\"radar_lat\"]');"
+    "var eLo=document.getElementById('radar_lon')||document.querySelector('input[name=\"radar_lon\"]');"
+    "if(eLa)eLa.value=la;if(eLo)eLo.value=lo;s.innerHTML='<span style=\"color:#28a745;font-weight:bold;\">&#x2714; IP: '+la+', '+lo+'</span>';"
+    "if(window._rM){window._rM.setView([parseFloat(la),parseFloat(lo)],14);if(window._rMk)window._rMk.setLatLng([parseFloat(la),parseFloat(lo)]);}"
+    "}else throw 1;}).catch(function(){s.innerHTML='<span style=\"color:#d9534f\">Auto-detect unavailable offline.</span>';});}"
     "</script>";
 
 WiFiManagerParameter s_param_gps_tools(kGpsToolsHtml);
@@ -274,9 +198,11 @@ char s_runways_small_attrs[32] = "type=\"checkbox\"";
 WiFiManagerParameter s_param_rwys_small("show_rwys_s", "Show Small / GA Airfields & Strips", "T", 2,
                                         s_runways_small_attrs, WFM_LABEL_AFTER);
 
-char s_display_select_html[750] = "";
-WiFiManagerParameter s_param_display_select(s_display_select_html);
-WiFiManagerParameter s_param_display_model("disp_model", "Display Model", "0", 4, "type=\"hidden\"");
+char s_display_card_html[2048] = "";
+WiFiManagerParameter s_param_display_card(s_display_card_html);
+WiFiManagerParameter s_param_display_model("disp_model", "", "0", 4, "type=\"hidden\"", WFM_NO_LABEL);
+WiFiManagerParameter s_param_day_bright("day_bright", "", "100", 4, "type=\"hidden\"", WFM_NO_LABEL);
+WiFiManagerParameter s_param_night_bright("night_bright", "", "25", 4, "type=\"hidden\"", WFM_NO_LABEL);
 
 constexpr char kFooterHtml[] =
     "<div id='radar-repo-footer' class='radar-footer'>"
@@ -321,7 +247,10 @@ void refreshPortalParamDefaults() {
   s_param_rwys_small.setValue("T", 2);
 
   const config::DisplayModel current_model = displayGetModel();
-  snprintf(s_display_select_html, sizeof(s_display_select_html),
+  const uint8_t day_br = displayGetDayBrightness();
+  const uint8_t night_br = displayGetNightBrightness();
+
+  snprintf(s_display_card_html, sizeof(s_display_card_html),
            "<div class='radar-card' style='text-align:left;'>"
            "<div style='font-size:15px;font-weight:bold;margin-bottom:8px;text-align:center;'>&#x1F4FA; Display Hardware</div>"
            "<label style='display:block;margin:6px 0;cursor:pointer;font-size:13px;'>"
@@ -332,13 +261,34 @@ void refreshPortalParamDefaults() {
            "<input type='radio' name='_disp_radio' value='1' onchange=\"document.getElementById('disp_model').value='1'\"%s> "
            "<strong>GC9B71 / GC9B72 (2.1&quot; 360&times;360 Round)</strong>"
            "</label>"
-           "<div style='font-size:11px;color:rgba(128,128,128,0.9);margin-top:6px;'>* Display change takes effect on device restart. Backlight on GPIO5.</div>"
+           "<hr style='border:none;border-top:1px solid rgba(128,128,128,0.25);margin:10px 0;'>"
+           "<div style='font-size:15px;font-weight:bold;margin-bottom:10px;text-align:center;'>&#x1F4A1; Display Brightness</div>"
+           "<div style='display:flex;justify-content:space-between;font-size:13px;'>"
+           "<span>&#x2600;&#xFE0F; <strong>Day Brightness</strong></span>"
+           "<span id='day_val' style='font-weight:bold;color:#0078d4;'>%u%%</span>"
+           "</div>"
+           "<input type='range' class='r-slider' min='5' max='100' value='%u' oninput=\"setB('day',this.value)\">"
+           "<div style='display:flex;justify-content:space-between;font-size:13px;'>"
+           "<span>&#x1F319; <strong>Night Brightness</strong></span>"
+           "<span id='night_val' style='font-weight:bold;color:#0078d4;'>%u%%</span>"
+           "</div>"
+           "<input type='range' class='r-slider' min='5' max='100' value='%u' oninput=\"setB('night',this.value)\">"
+           "<div style='font-size:11px;color:rgba(128,128,128,0.9);margin-top:6px;line-height:1.3;'>"
+           "* Physical PWM dimming on GPIO 5 controls the 2.1&quot; display backlight. The 1.28&quot; display uses automatic software color palette dimming."
+           "</div>"
            "</div>",
            (current_model == config::DisplayModel::GC9A01_240x240) ? " checked" : "",
-           (current_model == config::DisplayModel::GC9B71_360x360) ? " checked" : "");
-  s_param_display_select.setValue(s_display_select_html, sizeof(s_display_select_html));
+           (current_model == config::DisplayModel::GC9B71_360x360) ? " checked" : "",
+           day_br, day_br, night_br, night_br);
+
+  char day_buf[5];
+  char night_buf[5];
+  snprintf(day_buf, sizeof(day_buf), "%u", day_br);
+  snprintf(night_buf, sizeof(night_buf), "%u", night_br);
   s_param_display_model.setValue(
       (current_model == config::DisplayModel::GC9B71_360x360) ? "1" : "0", 4);
+  s_param_day_bright.setValue(day_buf, 4);
+  s_param_night_bright.setValue(night_buf, 4);
 }
 
 void onPortalParamsSaved() {
@@ -354,6 +304,9 @@ void onPortalParamsSaved() {
   ui::radar::saveRunwaysMilitaryFromPortal(s_param_rwys_mil.getValue());
   ui::radar::saveRunwaysSmallFromPortal(s_param_rwys_small.getValue());
   displaySetModelFromPortal(s_param_display_model.getValue());
+  displaySaveBrightnessFromPortal(s_param_day_bright.getValue(),
+                                  s_param_night_bright.getValue());
+  displayApplyBrightness(ui::radar::effectiveNightMode());
 }
 
 void attachPortalParams(WiFiManager& wm) {
@@ -368,8 +321,10 @@ void attachPortalParams(WiFiManager& wm) {
   wm.addParameter(&s_param_rwys_medium);
   wm.addParameter(&s_param_rwys_mil);
   wm.addParameter(&s_param_rwys_small);
-  wm.addParameter(&s_param_display_select);
+  wm.addParameter(&s_param_display_card);
   wm.addParameter(&s_param_display_model);
+  wm.addParameter(&s_param_day_bright);
+  wm.addParameter(&s_param_night_bright);
   wm.addParameter(&s_param_footer);
   wm.setSaveParamsCallback(onPortalParamsSaved);
 }
@@ -484,6 +439,19 @@ void setupCustomWebRoutes() {
       } else {
         s_wm.server->send(500, "application/json", "{\"success\":false}");
       }
+    });
+
+    s_wm.server->on("/api/brightness", HTTP_GET, []() {
+      s_wm.server->sendHeader("Connection", "close");
+      if (s_wm.server->hasArg("val")) {
+        const int val = s_wm.server->arg("val").toInt();
+        if (val >= 5 && val <= 100) {
+          displayApplyBrightnessPercent(static_cast<uint8_t>(val));
+          s_wm.server->send(200, "application/json", "{\"success\":true}");
+          return;
+        }
+      }
+      s_wm.server->send(400, "application/json", "{\"error\":\"invalid val\"}");
     });
   }
 }

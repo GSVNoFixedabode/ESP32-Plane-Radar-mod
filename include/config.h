@@ -4,7 +4,7 @@
 
 #include <driver/gpio.h>
 
-#define PLANE_RADAR_VERSION "v2.1.0"
+#define PLANE_RADAR_VERSION "v2.2.0"
 
 namespace config {
 

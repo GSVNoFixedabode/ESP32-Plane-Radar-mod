@@ -58,6 +58,7 @@ The same portal runs on the setup AP and on the device’s LAN IP while connecte
 | Field | Purpose |
 |-------|---------|
 | **📺 Display Hardware** | Choose between **GC9A01 (1.28" 240×240)** or **GC9B71 / GC9B72 (2.1" 360×360)** |
+| **💡 Day / Night Brightness** | Independent sliders (`5%`–`100%`) for Day and Night modes. Hardware PWM on GPIO 5 regulates the 2.1" display backlight; 1.28" displays use automatic software color palette dimming |
 | **🗺️ Interactive Map** | Tap anywhere or drag the pin on OpenStreetMap to auto-fill latitude & longitude |
 | **📍 Auto Locate** | One-tap phone GPS / IP geolocation fallback (`/api/geolocate`) |
 | **Latitude / Longitude** | Radar center and ADS-B query position (defaults in `config.h` until set) |
@@ -218,9 +219,9 @@ pio run -t upload -e supermini_ota --upload-port 192.168.0.xxx
 
 ### Web-flashable release image (PC or Android Mobile)
 
-Single `.bin` (`plane-radar-v2.1.0-merged.bin`) for [esptool-js](https://espressif.github.io/esptool-js/) and [ESP Web Tools](https://web.esphome.io/) (ESP32-C3, 4 MB, flash at **0x0**):
+Single `.bin` (`plane-radar-v2.2.0-merged.bin`) for [esptool-js](https://espressif.github.io/esptool-js/) and [ESP Web Tools](https://web.esphome.io/) (ESP32-C3, 4 MB, flash at **0x0**):
 
-- **From a PC (Chrome / Edge):** Plug in the ESP32, visit [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), select `plane-radar-v2.1.0-merged.bin` at `0x0`, and click Program.
+- **From a PC (Chrome / Edge):** Plug in the ESP32, visit [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), select `plane-radar-v2.2.0-merged.bin` at `0x0`, and click Program.
 - **From an Android Mobile Phone:** Plug the ESP32 into your phone using a USB-C to USB-C / OTG cable, open Chrome, navigate to [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/), and flash directly from your phone.
 
 To build the merged binary locally:
@@ -235,13 +236,13 @@ pio run -t merge -e supermini
 | Workflow | When | Output |
 |----------|------|--------|
 | [Build](.github/workflows/build.yml) | Push / PR to `main` | Artifact `plane-radar-supermini` (merged + split `.bin` files, ~90 days) |
-| [Release](.github/workflows/release.yml) | Git tag `v*` (e.g. `v2.1.0`) | GitHub Release asset `plane-radar-v2.1.0.bin` + `.sha256` |
+| [Release](.github/workflows/release.yml) | Git tag `v*` (e.g. `v2.2.0`) | GitHub Release asset `plane-radar-v2.2.0.bin` + `.sha256` |
 
 To ship a version users can download:
 
 ```bash
-git tag v2.1.0
-git push origin v2.1.0
+git tag v2.2.0
+git push origin v2.2.0
 ```
 
 The release workflow builds firmware in CI and attaches the merged image to the release. Download from **Releases** on GitHub, then flash at **0x0** (ESP32-C3, 4 MB).

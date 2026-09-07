@@ -197,12 +197,21 @@ void initTagLabelMetrics() {
 
 void initPalette() {
   const bool night = radar::effectiveNightMode();
+  static bool s_last_night = false;
+  static bool s_first_run = true;
+  if (s_first_run || night != s_last_night) {
+    s_first_run = false;
+    s_last_night = night;
+    displayApplyBrightness(night);
+  }
 
-  auto scaleChan = [night](uint8_t val) -> uint8_t {
-    if (!night) {
+  const uint8_t active_pct = displayGetActiveBrightness();
+
+  auto scaleChan = [active_pct](uint8_t val) -> uint8_t {
+    if (active_pct >= 100) {
       return val;
     }
-    return static_cast<uint8_t>((static_cast<uint32_t>(val) * 45 + 50) / 100);
+    return static_cast<uint8_t>((static_cast<uint32_t>(val) * active_pct + 50) / 100);
   };
 
   auto makeColor = [&](uint8_t r, uint8_t g, uint8_t b) -> uint16_t {
