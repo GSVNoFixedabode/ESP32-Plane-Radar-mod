@@ -764,31 +764,20 @@ bool ensureFrameSprite() {
     s_frame_ready = false;
   }
 
-  // 1. For 240x240, try 16-bit (115KB)
-  if (radar::size() <= 240) {
-    s_frame.setColorDepth(16);
-    if (s_frame.createSprite(radar::size(), radar::size())) {
-      s_frame_ready = true;
-      return true;
-    }
+  // On larger displays (360x360 GC9B71), an off-screen sprite would consume 130KB–260KB
+  // of RAM, causing mbedTLS (WiFiClientSecure / HTTPS) to fail with SSL memory allocation errors.
+  // Direct panel rendering via SPI DMA provides smooth drawing without exhausting heap.
+  if (radar::size() > 240) {
+    return false;
   }
 
-  // 2. For larger screens like 360x360, use 8-bit double-buffering (129KB)
+  // For 240x240 and smaller, use an 8-bit sprite (57.6 KB) to leave ample headroom for HTTPS.
   s_frame.setColorDepth(8);
   if (s_frame.createSprite(radar::size(), radar::size())) {
-    Serial.println("radar: 8-bit double-buffered sprite allocated");
     s_frame_ready = true;
     return true;
   }
 
-  // 3. Fallback attempt for 16-bit if memory allows
-  s_frame.setColorDepth(16);
-  if (s_frame.createSprite(radar::size(), radar::size())) {
-    s_frame_ready = true;
-    return true;
-  }
-
-  Serial.println("radar: sprite alloc failed (direct render fallback)");
   return false;
 }
 
