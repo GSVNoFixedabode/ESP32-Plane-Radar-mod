@@ -15,8 +15,8 @@ namespace {
 
 constexpr char kApiBase[] = "https://opendata.adsb.fi/api/v3/lat/";
 constexpr float kKmPerNm = 1.852f;
-constexpr int kConnectAttemptMs = 4000;
-constexpr unsigned long kRequestTimeoutMs = 6000;
+constexpr int kConnectAttemptMs = 8000;
+constexpr unsigned long kRequestTimeoutMs = 8000;
 
 Aircraft s_aircraft[kMaxAircraft];
 size_t s_aircraft_count = 0;
@@ -330,6 +330,7 @@ bool fetchUpdate(double center_lat, double center_lon, float fetch_radius_km) {
 
   WiFiClientSecure client;
   client.setInsecure();
+  client.setHandshakeTimeout(8);
 
   HTTPClient http;
   if (!http.begin(client, url)) {

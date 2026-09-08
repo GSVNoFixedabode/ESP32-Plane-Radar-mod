@@ -510,7 +510,7 @@ void stopLanWebPortal() {
 }
 
 void prepareSta() {
-  WiFi.setTxPower(WIFI_POWER_8_5dBm);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(config::kPortalHostname);
   WiFi.setSleep(WIFI_PS_NONE);

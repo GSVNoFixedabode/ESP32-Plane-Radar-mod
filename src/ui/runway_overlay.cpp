@@ -128,62 +128,54 @@ int distSqFromCenter(int x, int y) {
   return dx * dx + dy * dy;
 }
 
-void clipPointToOuterRing(int x0, int y0, int* x1, int* y1) {
-  const int max_r = radar::gridOuterRadius();
-  const int max_r_sq = max_r * max_r;
-  if (distSqFromCenter(*x1, *y1) <= max_r_sq) {
-    return;
-  }
+bool clipSegmentToDisc(float x0, float y0, float x1, float y1, float cx, float cy, float r,
+                       float* ox0, float* oy0, float* ox1, float* oy1) {
+  const float p0x = x0 - cx;
+  const float p0y = y0 - cy;
+  const float dx = x1 - x0;
+  const float dy = y1 - y0;
 
-  const int dx = *x1 - x0;
-  const int dy = *y1 - y0;
-  float t = 1.0f;
-  for (int step = 0; step < 20; ++step) {
-    const int px = x0 + static_cast<int>(lroundf(dx * t));
-    const int py = y0 + static_cast<int>(lroundf(dy * t));
-    if (distSqFromCenter(px, py) <= max_r_sq) {
-      *x1 = px;
-      *y1 = py;
-      return;
+  const float a = dx * dx + dy * dy;
+  const float r_sq = r * r;
+
+  if (a < 1e-4f) {
+    if (p0x * p0x + p0y * p0y <= r_sq) {
+      *ox0 = x0; *oy0 = y0;
+      *ox1 = x1; *oy1 = y1;
+      return true;
     }
-    t -= 0.05f;
-    if (t <= 0.0f) {
-      *x1 = x0;
-      *y1 = y0;
-      return;
-    }
-  }
-}
-
-bool segmentIntersectsDisc(int x0, int y0, int x1, int y1) {
-  const int cx = radar::centerX();
-  const int cy = radar::centerY();
-  const int r = radar::gridOuterRadius();
-  const int r_sq = r * r;
-
-  if (distSqFromCenter(x0, y0) <= r_sq || distSqFromCenter(x1, y1) <= r_sq) {
-    return true;
-  }
-
-  const int dx = x1 - x0;
-  const int dy = y1 - y0;
-  const int fx = x0 - cx;
-  const int fy = y0 - cy;
-  const int a = dx * dx + dy * dy;
-  if (a == 0) {
     return false;
   }
-  const int b = 2 * (fx * dx + fy * dy);
-  const int c = fx * fx + fy * fy - r_sq;
-  int disc = b * b - 4 * a * c;
-  if (disc < 0) {
+
+  const float b = 2.0f * (p0x * dx + p0y * dy);
+  const float c = (p0x * p0x + p0y * p0y) - r_sq;
+  const float disc = b * b - 4.0f * a * c;
+
+  if (disc < 0.0f) {
     return false;
   }
-  disc = static_cast<int>(sqrtf(static_cast<float>(disc)));
-  const float inv2a = 1.0f / (2.0f * static_cast<float>(a));
-  const float t0 = (-static_cast<float>(b) - disc) * inv2a;
-  const float t1 = (-static_cast<float>(b) + disc) * inv2a;
-  return (t0 >= 0.0f && t0 <= 1.0f) || (t1 >= 0.0f && t1 <= 1.0f);
+
+  const float sqrt_disc = sqrtf(disc);
+  const float inv_2a = 0.5f / a;
+  float t0 = (-b - sqrt_disc) * inv_2a;
+  float t1 = (-b + sqrt_disc) * inv_2a;
+
+  if (t0 > t1) {
+    std::swap(t0, t1);
+  }
+
+  const float t_start = std::max(0.0f, t0);
+  const float t_end = std::min(1.0f, t1);
+
+  if (t_start > t_end) {
+    return false;
+  }
+
+  *ox0 = x0 + t_start * dx;
+  *oy0 = y0 + t_start * dy;
+  *ox1 = x0 + t_end * dx;
+  *oy1 = y0 + t_end * dy;
+  return true;
 }
 
 void drawBoldRunwayLabel(lgfx::LGFXBase& gfx, const char* ident, int mx, int my) {
@@ -197,12 +189,10 @@ void drawBoldRunwayLabel(lgfx::LGFXBase& gfx, const char* ident, int mx, int my)
   const int top = my - th - kPadY;
   gfx.fillRect(left, top, tw + kPadX * 2, th + kPadY, radar::kColorBackground);
   gfx.setTextColor(radar::kColorRunwayLabel, radar::kColorBackground);
-  gfx.drawString(ident, mx - 1, my);
-  gfx.drawString(ident, mx + 1, my);
   gfx.drawString(ident, mx, my);
 }
 
-bool drawRunwayLine(lgfx::LGFXBase& gfx, const data::large_airports::Runway& rw) {
+bool drawRunwayLine(lgfx::LGFXBase& gfx, const data::large_airports::Runway& rw, int y_offset) {
   const float le_lat = e7ToDeg(rw.le_lat_e7);
   const float le_lon = e7ToDeg(rw.le_lon_e7);
   const float he_lat = e7ToDeg(rw.he_lat_e7);
@@ -215,15 +205,24 @@ bool drawRunwayLine(lgfx::LGFXBase& gfx, const data::large_airports::Runway& rw)
   latLonToScreen(le_lat, le_lon, &x0, &y0);
   latLonToScreen(he_lat, he_lon, &x1, &y1);
 
-  if (!segmentIntersectsDisc(x0, y0, x1, y1)) {
+  const float cx = static_cast<float>(radar::centerX());
+  const float cy = static_cast<float>(radar::centerY());
+  const float r = static_cast<float>(radar::gridOuterRadius());
+
+  float ox0 = 0.0f;
+  float oy0 = 0.0f;
+  float ox1 = 0.0f;
+  float oy1 = 0.0f;
+
+  if (!clipSegmentToDisc(static_cast<float>(x0), static_cast<float>(y0),
+                        static_cast<float>(x1), static_cast<float>(y1),
+                        cx, cy, r, &ox0, &oy0, &ox1, &oy1)) {
     return false;
   }
 
-  clipPointToOuterRing(x0, y0, &x1, &y1);
-  clipPointToOuterRing(x1, y1, &x0, &y0);
-
-  gfx.drawWideLine(x0, y0, x1, y1, radar::runwayLineHalfWidth(),
-                   radar::kColorRunway);
+  gfx.drawWideLine(static_cast<int>(lroundf(ox0)), static_cast<int>(lroundf(oy0)) - y_offset,
+                   static_cast<int>(lroundf(ox1)), static_cast<int>(lroundf(oy1)) - y_offset,
+                   radar::runwayLineHalfWidth(), radar::kColorRunway);
   return true;
 }
 
@@ -241,43 +240,31 @@ void offsetLabelFromCenter(int ax, int ay, int* lx, int* ly) {
   *ly = ay + static_cast<int>(lroundf(dy / len * static_cast<float>(gap)));
 }
 
-void clipPointOntoOuterRing(int* x, int* y) {
-  const int cx = radar::centerX();
-  const int cy = radar::centerY();
-  const int r = radar::gridOuterRadius();
-  const int dx = *x - cx;
-  const int dy = *y - cy;
-  const int d_sq = dx * dx + dy * dy;
-  const int r_sq = r * r;
-  if (d_sq <= r_sq || d_sq == 0) {
-    return;
-  }
-  const float scale = static_cast<float>(r) / sqrtf(static_cast<float>(d_sq));
-  *x = cx + static_cast<int>(lroundf(static_cast<float>(dx) * scale));
-  *y = cy + static_cast<int>(lroundf(static_cast<float>(dy) * scale));
-}
-
 void drawAirportLabel(lgfx::LGFXBase& gfx,
-                      const data::large_airports::Airport& ap) {
+                      const data::large_airports::Airport& ap, int y_offset) {
   int ax = 0;
   int ay = 0;
   latLonToScreen(e7ToDeg(ap.lat_e7), e7ToDeg(ap.lon_e7), &ax, &ay);
-  clipPointOntoOuterRing(&ax, &ay);
+
+  const int max_r = radar::gridOuterRadius();
+  if (distSqFromCenter(ax, ay) > max_r * max_r) {
+    return;
+  }
 
   int lx = 0;
   int ly = 0;
   offsetLabelFromCenter(ax, ay, &lx, &ly);
-  drawBoldRunwayLabel(gfx, ap.ident, lx, ly);
+  drawBoldRunwayLabel(gfx, ap.ident, lx, ly - y_offset);
 }
 
 }  // namespace
 
-void drawLargeAirportRunways(lgfx::LGFXBase& gfx) {
+void drawLargeAirportRunways(lgfx::LGFXBase& gfx, int y_offset) {
   if (!radar::showRunways()) {
     return;
   }
   displayFontEnsureLoaded(gfx);
-  const float radius_km = radar::fetchRadiusKm();
+  const float radius_km = radar::rangeCurrent().outer_km * 1.15f;
 
   uint16_t label_airports[kMaxAirportLabels];
   size_t label_count = 0;
@@ -306,7 +293,7 @@ void drawLargeAirportRunways(lgfx::LGFXBase& gfx) {
     if (!getBit(s_in_range_bits, ap_idx)) {
       continue;
     }
-    if (!drawRunwayLine(gfx, rw)) {
+    if (!drawRunwayLine(gfx, rw, y_offset)) {
       continue;
     }
     if (!getBit(s_label_pending_bits, ap_idx) && label_count < kMaxAirportLabels) {
@@ -322,7 +309,7 @@ void drawLargeAirportRunways(lgfx::LGFXBase& gfx) {
   initRunwayLabelStyle(gfx);
   applyRunwayLabelStyle(gfx);
   for (size_t i = 0; i < label_count; ++i) {
-    drawAirportLabel(gfx, data::large_airports::kAirports[label_airports[i]]);
+    drawAirportLabel(gfx, data::large_airports::kAirports[label_airports[i]], y_offset);
   }
 }
 

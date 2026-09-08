@@ -4,7 +4,7 @@
 
 #include <driver/gpio.h>
 
-#define PLANE_RADAR_VERSION "v2.2.0"
+#define PLANE_RADAR_VERSION "v2.2.1"
 
 namespace config {
 
@@ -63,7 +63,7 @@ constexpr char kIpGeoUrl[] = "http://ip-api.com/json";
 constexpr unsigned long kIpGeoTimeoutMs = 3000;
 
 /** Poll adsb.fi (API public limit: 1 req/s). */
-constexpr unsigned long kAdsbFetchIntervalMs = 4000;
+constexpr unsigned long kAdsbFetchIntervalMs = 5000;
 /** Legacy scale unused — fetch uses radar::fetchRadiusKm() to screen edge. */
 constexpr float kAdsbFetchRadiusScale = 1.0f;
 /** false = hide aircraft with alt_baro "ground"; true = show them too. */
